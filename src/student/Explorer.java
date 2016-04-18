@@ -41,10 +41,12 @@ public class Explorer {
      */
     public void explore(ExplorationState state) {
         List<NodeStatus> visitedNodes = new ArrayList<NodeStatus>();
+        Collection<NodeStatus> neighboursCollection;
+        List<NodeStatus> neighbours;
         while(state.getDistanceToTarget() != 0) {
             System.out.println("The current node is: " + state.getCurrentLocation());
-            Collection<NodeStatus> neighboursCollection = state.getNeighbours();
-            List<NodeStatus> neighbours = new ArrayList<NodeStatus>(neighboursCollection);
+            neighboursCollection = state.getNeighbours();
+            neighbours = new ArrayList<NodeStatus>(neighboursCollection);
             System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
             Collections.sort(neighbours);
             System.out.println("These neighbours in order are" + neighbours);
