@@ -40,122 +40,41 @@ public class Explorer {
      * @param state the information available at the current state
      */
     public void explore(ExplorationState state) {
+        List<NodeStatus> visitedNodes = new ArrayList<NodeStatus>();
+        while(state.getDistanceToTarget() != 0) {
+            System.out.println("The current node is: " + state.getCurrentLocation());
+            Collection<NodeStatus> neighboursCollection = state.getNeighbours();
+            List<NodeStatus> neighbours = new ArrayList<NodeStatus>(neighboursCollection);
+            System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
+            Collections.sort(neighbours);
+            System.out.println("These neighbours in order are" + neighbours);
+            System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
+            boolean moveMade = false;
+            while (moveMade == false) {
+                int count = 0;
+                //check there are still potential neighbours to move to
+                if(count < neighbours.size()) {
+                    NodeStatus temp = neighbours.get(count);
+                    //check if this node has not been visited yet
+                    if (visitedNodes.contains(temp) == false) {
+                        visitedNodes.add(temp);
+                        state.moveTo(temp.getId());
+                        moveMade = true;
+                        System.out.println("The new node is: " + state.getCurrentLocation());
+                    }
+                    count++;
+                }
+                else{
+                    //move back to previous visited square
+                    state.moveTo((visitedNodes.get( (visitedNodes.size())-1 ) ).getId());
+                    moveMade = true;
+                }
+            }
+            //add nearest neighbour to visitedNodes, and move to it
+            //old code state.moveTo(neighbours.get(0).getId());
+            //         System.out.println("The new node is: " + state.getCurrentLocation());
 
-        //will put loop here:   while(state.getDistanceToTarget() != 0){
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        Collection<NodeStatus> neighboursCollection = state.getNeighbours();
-        List<NodeStatus> neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-
-        System.out.println("The current node is: " + state.getCurrentLocation());
-        neighboursCollection = state.getNeighbours();
-        neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-        System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
-        Collections.sort(neighbours);
-        System.out.println("These neighbours in order are" + neighbours);
-        System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
-
-        state.moveTo(neighbours.get(0).getId());
-        System.out.println("The new node is: " + state.getCurrentLocation());
-
-
+        }
     }
 
     /**
