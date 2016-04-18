@@ -42,23 +42,29 @@ public class Explorer {
     public void explore(ExplorationState state) {
         List<NodeStatus> visitedNodes = new ArrayList<NodeStatus>();
         Collection<NodeStatus> neighboursCollection;
-        List<NodeStatus> neighbours;
+
         while(state.getDistanceToTarget() != 0) {
             System.out.println("The current node is: " + state.getCurrentLocation());
             neighboursCollection = state.getNeighbours();
-            neighbours = new ArrayList<NodeStatus>(neighboursCollection);
+            //convert the new neighbours collection into a new list
+            List<NodeStatus> neighbours = new ArrayList<NodeStatus>(neighboursCollection);
+            //sort the list
             System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
             Collections.sort(neighbours);
             System.out.println("These neighbours in order are" + neighbours);
             System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
+            // a flag to come out of next while loop once a move has been made
             boolean moveMade = false;
+            // an int to keep track of which neighbours have been checked
+            int count = 0;
             while (moveMade == false) {
-                int count = 0;
                 //check there are still potential neighbours to move to
                 if(count < neighbours.size()) {
+                    // get the next neighbour to check
                     NodeStatus temp = neighbours.get(count);
-                    //check if this node has not been visited yet
+                    //check if this node has been visited yet
                     if (visitedNodes.contains(temp) == false) {
+                        //move to this node, add it to visitedNodes and come out of while loop
                         visitedNodes.add(temp);
                         state.moveTo(temp.getId());
                         moveMade = true;
@@ -67,7 +73,7 @@ public class Explorer {
                     count++;
                 }
                 else{
-                    //move back to previous visited square
+                    //move back to previous visited square and come out of while loop
                     state.moveTo((visitedNodes.get( (visitedNodes.size())-1 ) ).getId());
                     moveMade = true;
                 }
