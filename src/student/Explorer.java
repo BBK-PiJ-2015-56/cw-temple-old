@@ -40,16 +40,20 @@ public class Explorer {
      * @param state the information available at the current state
      */
     public void explore(ExplorationState state) {
+        System.out.println("starting to explore.......");
         List<NodeStatus> visitedNodes = new ArrayList<NodeStatus>();
         Collection<NodeStatus> neighboursCollection;
 
         while(state.getDistanceToTarget() != 0) {
+            System.out.println("starting a  new move........");
             System.out.println("The current node is: " + state.getCurrentLocation());
+            System.out.println("This distance away from the orb is: " + state.getDistanceToTarget());
             neighboursCollection = state.getNeighbours();
             //convert the new neighbours collection into a new list
             List<NodeStatus> neighbours = new ArrayList<NodeStatus>(neighboursCollection);
+            System.out.println("There are " + neighbours.size() + " neighbours to check");
             //sort the list
-            System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
+            //System.out.println("The neighbours of node: " + state.getCurrentLocation() + "  are" + neighbours);
             Collections.sort(neighbours);
             System.out.println("These neighbours in order are" + neighbours);
             System.out.println("The id of the neighbour closest to orb is: " + neighbours.get(0).getId());
@@ -59,23 +63,60 @@ public class Explorer {
             int count = 0;
             while (moveMade == false) {
                 //check there are still potential neighbours to move to
+                System.out.println("checking neighbour number: " + count);
                 if(count < neighbours.size()) {
                     // get the next neighbour to check
+                    System.out.println("This neighbour exists");
                     NodeStatus temp = neighbours.get(count);
                     //check if this node has been visited yet
-                    if (visitedNodes.contains(temp) == false) {
+                    if (!(visitedNodes.contains(temp))){
+                        System.out.println("This neighbour has not been visited yet");
                         //move to this node, add it to visitedNodes and come out of while loop
                         visitedNodes.add(temp);
+                        System.out.println("moving to node with id: " + temp.getId());
                         state.moveTo(temp.getId());
                         moveMade = true;
                         System.out.println("The new node is: " + state.getCurrentLocation());
+                    }else{
+                        System.out.println("This neighbour has already been visited.");
                     }
                     count++;
                 }
                 else{
-                    //move back to previous visited square and come out of while loop
-                    state.moveTo((visitedNodes.get( (visitedNodes.size())-1 ) ).getId());
-                    moveMade = true;
+                    System.out.println("This neighbour does not exist as we have checked all the neighbours");
+                    //move back to previous visited squares until we get one with a neighbour not visited
+                    boolean unvisitedNeighbourExists = false;
+                    int n = 2;
+                    NodeStatus prevTempNode;
+                    while(!(unvisitedNeighbourExists)){
+                        System.out.println("moving back to previous node");
+                        prevTempNode = visitedNodes.get((visitedNodes.size()-n ));
+                        System.out.println("The previous node had id: " + prevTempNode.getId());
+                        //check if this node has an unvisited neighbour
+                        neighboursCollection = state.getNeighbours();
+                        //convert the new neighbours collection into a new list
+                        List<NodeStatus> tempNodeNeighbours = new ArrayList<NodeStatus>(neighboursCollection);
+                        System.out.println("There are " + tempNodeNeighbours.size() + " neighbours to check for this previous node");
+                        //sort the list
+                        Collections.sort(tempNodeNeighbours);
+                        //Look through the neighbours, in distance order, to check if an unvisited neighbour exists
+                        int tempCount = 0;
+                        while(tempCount < tempNodeNeighbours.size() && !(unvisitedNeighbourExists)) {
+                            // get the neighbour at that count
+                            NodeStatus tempNeighbour = tempNodeNeighbours.get(tempCount);
+                            System.out.println("now checking neighbour number: " + tempCount);
+                            // check if this neighbour has been visited
+                            if (!(visitedNodes.contains(tempNeighbour))) {
+                                System.out.println("This neighbour has not been visited, so moving to it");
+                                visitedNodes.add(tempNeighbour);
+                                state.moveTo(tempNeighbour.getId());
+                                unvisitedNeighbourExists = true;
+                                moveMade = true;
+                            }
+                            tempCount++;
+                        }
+                        n++;
+                    }
                 }
             }
             //add nearest neighbour to visitedNodes, and move to it
