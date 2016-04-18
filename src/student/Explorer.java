@@ -41,10 +41,10 @@ public class Explorer {
      */
     public void explore(ExplorationState state) {
         System.out.println("starting to explore.......");
-        List<NodeStatus> visitedNodes = new ArrayList<NodeStatus>();
+        List<Long> visitedNodes = new ArrayList<Long>();
         Collection<NodeStatus> neighboursCollection;
 
-        while(state.getDistanceToTarget() != 0) {
+        while (state.getDistanceToTarget() != 0) {
             System.out.println("starting a  new move........");
             System.out.println("The current node is: " + state.getCurrentLocation());
             System.out.println("This distance away from the orb is: " + state.getDistanceToTarget());
@@ -63,28 +63,37 @@ public class Explorer {
             int count = 0;
             while (moveMade == false) {
                 //check there are still potential neighbours to move to
-                System.out.println("checking neighbour number: " + count);
-                if(count < neighbours.size()) {
+                System.out.println("checking neighbour number: " + (count + 1));
+                if (count < neighbours.size()) {
                     // get the next neighbour to check
                     System.out.println("This neighbour exists");
                     NodeStatus temp = neighbours.get(count);
                     //check if this node has been visited yet
-                    if (!(visitedNodes.contains(temp))){
+                    if (!(visitedNodes.contains(temp.getId()))) {
                         System.out.println("This neighbour has not been visited yet");
                         //move to this node, add it to visitedNodes and come out of while loop
-                        visitedNodes.add(temp);
+                        visitedNodes.add(temp.getId()); // automatically converts long to Long
                         System.out.println("moving to node with id: " + temp.getId());
                         state.moveTo(temp.getId());
                         moveMade = true;
                         System.out.println("The new node is: " + state.getCurrentLocation());
-                    }else{
+                    } else {
                         System.out.println("This neighbour has already been visited.");
                     }
                     count++;
-                }
-                else{
+                } else {
                     System.out.println("This neighbour does not exist as we have checked all the neighbours");
-                    //move back to previous visited squares until we get one with a neighbour not visited
+                    System.out.println("RESETTING THE NODESVISITED LIST!!!");
+                    //empty the visitedNodes list and reset count so that George can get moving again
+                    visitedNodes = new ArrayList<Long>();
+                    //add current node to the new visited list so it doesn't return here in future
+                    visitedNodes.add(state.getCurrentLocation());
+                    count = 0;
+                }
+            }
+        }
+    }
+                    /*move back to previous visited squares until we get one with a neighbour not visited
                     boolean unvisitedNeighbourExists = false;
                     int n = 2;
                     NodeStatus prevTempNode;
@@ -116,15 +125,9 @@ public class Explorer {
                             tempCount++;
                         }
                         n++;
-                    }
-                }
-            }
-            //add nearest neighbour to visitedNodes, and move to it
-            //old code state.moveTo(neighbours.get(0).getId());
-            //         System.out.println("The new node is: " + state.getCurrentLocation());
+                    }*/
 
-        }
-    }
+
 
     /**
      * Escape from the cavern before the ceiling collapses, trying to collect as much
