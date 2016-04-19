@@ -43,9 +43,11 @@ public class Explorer {
     public void explore(ExplorationState state) {
         System.out.println("starting to explore.......");
         List<Long> visitedNodes = new ArrayList<Long>();
-        //a list to hold previously visited nodes that may get wiped out
-        List<Long> wipedVisitedNodes = new ArrayList<Long>();
         Collection<NodeStatus> neighboursCollection;
+        List<NodeStatus> neighbours;
+        List<NodeStatus> unvisited;
+        List<NodeStatus> visitedButHasUnvisitedNeighbour;
+        List<NodeStatus> visitedAndAllNeighboursVisited;
 
         while (state.getDistanceToTarget() != 0) {
             System.out.println("starting a  new move........");
@@ -53,96 +55,144 @@ public class Explorer {
             System.out.println("This distance away from the orb is: " + state.getDistanceToTarget());
             neighboursCollection = state.getNeighbours();
             //convert the new neighbours collection into a new list
-            List<NodeStatus> neighbours = new ArrayList<NodeStatus>(neighboursCollection);
-            System.out.print("The neighbours to check are, in order or closeness to orb: ");
-            neighbours.forEach(nodeStatus -> System.out.print("  neighbour to check: " + nodeStatus.getId()));
-            System.out.println();
+            neighbours = new ArrayList<NodeStatus>(neighboursCollection);
             //sort the list
-            Collections.sort(neighbours);;
-            // a flag to come out of next while loop once a move has been made
-            boolean moveMade = false;
-            // an int to keep track of which neighbours have been checked
-            int count = 0;
-            while (moveMade == false) {
-                //check there are still potential neighbours to move to
-                if (count < neighbours.size()) {
-                    // get the next neighbour to check
-                    long tempId = neighbours.get(count).getId();
-                    System.out.println("checking neighbour with id: " + tempId);
-                    //check if this node has been visited yet, including in recent wiped history
-                    if (!(visitedNodes.contains(tempId))) {
-                        System.out.println("This neighbour has not been visited yet");
-                        //move to this node, add it to visitedNodes and come out of while loop
-                        visitedNodes.add(tempId); // automatically converts long to Long
-                        System.out.println("moving to node with id: " + tempId);
-                        state.moveTo(tempId);
-                        moveMade = true;
-                        System.out.println("Check move success: node should be: " + tempId + " node is: " + state.getCurrentLocation());
-                        System.out.println();
-                    } else {
-                        System.out.println("This neighbour has already been visited.");
+            Collections.sort(neighbours);
+            //get three empty lists for splitting up the neighbours
+            unvisited = new ArrayList<NodeStatus>();
+            visitedButHasUnvisitedNeighbour = new ArrayList<NodeStatus>();
+            visitedAndAllNeighboursVisited = new ArrayList<NodeStatus>();
+
+            // split the sorted list into three sublists
+            for(int i = 0; i < neighbours.size(); i++){
+                NodeStatus tempNode = neighbours.get(i);
+                if (visitedNodes.contains(tempNode.getId())) {
+                    if(allNeighboursVisited(tempNode)){
+                        visitedAndAllNeighboursVisited.add(tempNode);
+                    }else{
+                        visitedButHasUnvisitedNeighbour.add(tempNode);
                     }
-                    count++;
                 } else{
-                    System.out.println("all neighbours checked - all have been visited (but may have been wiped recently)... ");
-                    // same as above, but check them on visitedNodes list, so not including recently wiped
-                    int newCount = 0;
-                    if (newCount < neighbours.size()) {
-                        // get the next neighbour to check
-                        long tempId = neighbours.get(newCount).getId();
-                        System.out.println("checking neighbour with id: " + tempId);
-                        //check if this node has been visited yet, including in recent wiped history
-                        if (!(wipedVisitedNodes.contains(tempId))) {
-                            System.out.println("This neighbour has not been visited recently");
-                            //move to this node
-                            // add it to both visitedNodes and wipedVisitedNotes, and come out of while loop
-                            wipedVisitedNodes.add(tempId);
-                            visitedNodes.add(tempId);
-                            System.out.println("moving to node with id: " + tempId);
-                            state.moveTo(tempId);
-                            moveMade = true;
-                            System.out.println("Check move success: node should be: " + tempId + " node is: " + state.getCurrentLocation());
-                            System.out.println();
-                        } else {
-                            System.out.println("This neighbour has already been visited.");
-                            newCount++;
-                        }
-                }else {
-                        // all neighbours have been visited
-                        System.out.print("all the neighbours have been checked on visited list and wipedVisited list: ");
-                        neighbours.forEach(nodeStatus -> System.out.println("  neighbour checked: " + nodeStatus.getId()));
-                        System.out.println();
-                        // will need to do a wipe of the recently visited nodes to get George moving
-                        // we still want george to favour a completely unvisited square, so we update the wiped list with a copy
-                        wipedVisitedNodes = visitedNodes;
-                        System.out.println("WIPING LAST 20 NODES FROM VISITED LIST!!!");
-                        System.out.print("current list of visited nodes:(total = " + visitedNodes.size() + "):  ");
-                        visitedNodes.forEach(nodeId -> System.out.print("  nodeId visited: " + nodeId));
-                        System.out.println();
-                        //remove the last 3 moves from list so George can move, or all of them if less than 4 nodes visited
-                        int origSize = visitedNodes.size();
-                        // need to optimize number of removals: 8 too small, 20 too small
-                        for(int i = 1; i < 50; i++) {   //need to check it works when size < 30
-                            if (origSize >= i) {
-                                wipedVisitedNodes.remove((origSize) - i);
-                            }
-                        }
-                        System.out.print("new list of wipedVisitedNodes(some wiped): (total = " + wipedVisitedNodes.size() + "):  ");
-                        wipedVisitedNodes.forEach(nodeId -> System.out.print("  nodeId visited: " + nodeId));
-                        System.out.println();
-                        //add current node to the new visited list so it doesn't return here in future
-                        wipedVisitedNodes.add(state.getCurrentLocation());
-                        System.out.print("new list of wipedVisitedNodes, with somw wiped but current node added: ");
-                        visitedNodes.forEach(nodeId -> System.out.print("  nodeId visited: " + nodeId));
-                        System.out.println();
-                        //reset count so that all neighbours from current node are checked again
-                        count = 0;
-                    }
+                    unvisited.add(tempNode);
                 }
+            }
+            // now need to check 3 lists 
+            long nextNodeId;
+            // move to the first node in neighboursNotVisited, if such a node exists
+            if (unvisited.size() > 0) {
+                //nextNodeId = visited.get(0).getId();
+                System.out.println("There is a neighbour not visited yet, and we move to it");
+                move(nextNodeId, visitedNodes, state);
+            } else {
+
+                nextNodeId = neighboursVisited.get(0).getId();
+                System.out.println("All neighbours have been visited so we move to another one");
+                move(nextNodeId, visitedNodes, state);
             }
         }
     }
-                    /*move back to previous visited squares until we get one with a neighbour not visited
+    private void move(long nextNode, List<Long> visitedNodes, ExplorationState state){
+        long nextNodeId;
+        nextNodeId = nextNode;
+        visitedNodes.add(nextNodeId);
+        System.out.println("moving to node with id: " + nextNodeId);
+        state.moveTo(nextNodeId);
+        System.out.println("Check move: node should be: " + nextNodeId + " node is: " + state.getCurrentLocation());
+        System.out.println();
+    }
+    private boolean allNeighboursVisited(NodeStatus node){
+        //get neighbours for this node, and check if visited
+        return true;
+    }
+
+
+
+      /*
+            // an int to keep track of which neighbours have been checked
+            int count = 0;
+            // check a move had not been made, and there are still other neighbours to check
+            while ((!(moveMade)) && (count < neighbours.size()) ) {
+                // get the next neighbour to check
+                long tempId = neighbours.get(count).getId();
+                System.out.println("checking neighbour with id: " + tempId);
+                //check if this node has been visited yet, including in recent wiped history
+                if (!(visitedNodes.contains(tempId))) {
+                    System.out.println("This neighbour has not been visited yet");
+                    //move to this node, add it to visitedNodes and partialVisits
+                    visitedNodes.add(tempId);
+                    partialVisitedNodes.add(tempId);
+                    System.out.println("moving to node with id: " + tempId);
+                    state.moveTo(tempId);
+                    moveMade = true;
+                    System.out.println("Check move success: node should be: " + tempId + " node is: " + state.getCurrentLocation());
+                    System.out.println();
+                } else {
+                        System.out.println("This neighbour has already been visited.");
+                }
+                    count++;
+            }
+            int newCount = 0;
+            while ((!(moveMade)) && (newCount < neighbours.size()) ) {
+                    System.out.println("NO MOVE YET, SO NOW CHECKING THE PARTIALVISITS LIST... ");
+                // get the next neighbour to check
+                long tempId = neighbours.get(newCount).getId();
+                System.out.println("checking neighbour with id: " + tempId);
+                //check if this node has been visited yet, including in recent wiped history
+                if (!(partialVisitedNodes.contains(tempId))) {
+                    System.out.println("This neighbour has not been visited recently");
+                    //move to this node
+                    // add it to both visitedNodes and partialVisitedNotes
+                    partialVisitedNodes.add(tempId);
+                    visitedNodes.add(tempId);
+                    System.out.println("moving to node with id: " + tempId);
+                    state.moveTo(tempId);
+                    moveMade = true;
+                    System.out.println("Check move success: node should be: " + tempId + " node is: " + state.getCurrentLocation());
+                    System.out.println();
+                } else {
+                    System.out.println("This neighbour is on the partialVisits list and the visits list.");
+                    newCount++;
+                }
+            }
+            /*
+            //If still no move, then George is stuck so need to wipe recent visits
+            if(!(moveMade)){
+                // all neighbours have been visited
+                System.out.print("all the neighbours have been checked on visited list and wipedVisited list: ");
+                neighbours.forEach(nodeStatus -> System.out.println("  neighbour checked: " + nodeStatus.getId()));
+                System.out.println();
+                // will need to do a wipe of the recently visited nodes to get George moving
+                // we still want george to favour a completely unvisited square, so we update the wiped list with a copy
+                //reset partialVisits to visits, and then wipe last 20 from partialVisits
+                partialVisitedNodes = visitedNodes;
+                System.out.println("WIPING LAST 20 NODES FROM VISITED LIST!!!");
+                System.out.print("current list of visited nodes:(total = " + visitedNodes.size() + "):  ");
+                visitedNodes.forEach(nodeId -> System.out.print("  nodeId visited: " + nodeId));
+                System.out.println();
+                //remove the last 3 moves from list so George can move, or all of them if less than 4 nodes visited
+                int origSize = visitedNodes.size();
+                // need to optimize number of removals: 8 too small, 20 too small
+                for(int i = 1; i < 50; i++) {   //need to check it works when size < 30
+                    if (origSize >= i) {
+                        partialVisitedNodes.remove((origSize) - i);
+                    }
+                }
+                System.out.println("ABOUT TO WIPE THE LIST");
+                System.out.println("There are now " + partialVisitedNodes.size() + " nodes on the partialVisits list");
+                System.out.println("There are now " + visitedNodes.size() + " nodes on the visits list");
+                System.out.print("new list of partialVisitedNodes(last 20 visits wiped): ");
+                partialVisitedNodes.forEach(nodeId -> System.out.print("  nodeId visited: " + nodeId));
+                System.out.println();
+                System.out.println("There are now " + partialVisitedNodes.size() + " nodes on the partialVisits list");
+                System.out.println("There are now " + visitedNodes.size() + " nodes on the visits list");
+                //add current node to the new visited list so it doesn't return here in future
+                partialVisitedNodes.add(state.getCurrentLocation());
+                //start a new move from current location
+                count = 0;
+            }
+        }
+    }
+                    //move back to previous visited squares until we get one with a neighbour not visited
                     boolean unvisitedNeighbourExists = false;
                     int n = 2;
                     NodeStatus prevTempNode;
@@ -203,5 +253,7 @@ public class Explorer {
      */
     public void escape(EscapeState state) {
         //TODO: Escape from the cavern before time runs out
+
+        // https://www.google.co.uk/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8#q=dijkstra%27s+algorithm+java
     }
 }
