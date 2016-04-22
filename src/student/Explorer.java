@@ -164,43 +164,52 @@ public class Explorer {
     public void escape(EscapeState state) {
         //TODO: Escape from the cavern before time runs out
         System.out.println("starting escape.....");
-        System.out.println("current nodeId is" + state.getCurrentNode().getId());
-        System.out.println("exit nodeId is " + state.getExit());
+        System.out.println("current nodeId is " + state.getCurrentNode().getId());
+        System.out.println("exit nodeId is " + state.getExit().getId());
         System.out.println("time remaining is....." + state.getTimeRemaining());
-        System.out.println("There are + " + state.getVertices().size() + " nodes.");
+        System.out.println("There are " + state.getVertices().size() + " nodes.");
 
+        Node start = state.getCurrentNode();
         //A List of all Nodes
         Collection<Node> nodesCollection= state.getVertices();
         List<Node> nodes = new ArrayList<>(nodesCollection);
 
+        //A Map of the shortest distances from the start to every node, set to 100,000
+        Map<Node , Integer> dstToNodes = new HashMap<>();
+        nodes.forEach(node -> dstToNodes.put(node , 100000));
+
+        //fill in the maps to get the shortest paths and the corresponding distances
         //A Map of ordered predecessors for each node in path from start to node
         //These are initialized as having no predecessors.
         //Predecessors will be added as and when they are discovered to reduce the shortest distance
-        Map<Node , ArrayList<Node>> pathsToNodes = new HashMap<>();
-        nodes.forEach(node -> pathsToNodes.put(node , new ArrayList<>()));
+        //Also updates dstToNodes Map
+        Map<Node , ArrayList<Node>> pathsToNodes = findPathsToNodes(start, nodes);
 
+        //Make the journey from the state's currentNode to the exit, along the shortest path
+        makeJourney(state, pathsToNodes.get(state.getExit()));
     }
 
-    private void findShortestPaths(Node start, List<Node> nodes, Map<Node,ArrayList<Node>> paths ){
+    private Map<Node,ArrayList<Node>> findPathsToNodes(Node start, List<Node> nodes ){
+
+        Map<Node, ArrayList<Node>> pathsToNodes = new HashMap<>();
+        nodes.forEach(node -> pathsToNodes.put(node , new ArrayList<>()));
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
         List<Node> unopt = nodes;
         //A List of all nodes for which we do know shortest dst
         List<Node> opt = new ArrayList<>();
 
-        //A Map of current best estimates for shortest distance from start, set to 100,000
-        Map<Node , Integer > shortestDst= new HashMap<>();
-        nodes.forEach(node -> shortestDst.put(node , 100000));
-        //A Map of best estimates
-        Map<Node,Integer> estimates = new HashMap<>();
-
         // the node we are optimizing now
         Node currentNode = start;
         while(unopt.size() > 0) {
-            //get current nodes unoptimized neighbours
+            //get current node's unoptimized neighbours
             Set<Node> neighboursSet = currentNode.getNeighbours();
             List<Node> neighbours = new ArrayList<>(neighboursSet);
             List<Node> unoptNeighbours = new ArrayList<>();
-            neighbours.forEach(neighbour -> unoptNeighbours.add(neighbour));
+            neighbours.forEach(neighbour -> {
+                if(unopt.contains(neighbour)){
+                    unoptNeighbours.add(neighbour);
+                }
+            });
 
             //update Current Node that we will optimize - no update needed first time
             if(opt.size() != 0){
@@ -214,32 +223,44 @@ public class Explorer {
                 }
                 currentNode = nextNode;
             }
+            //ERROR: I have updates currentNode at the wrong place - it needs to be
+            //before I create unoptNeighbours, because otherwise they will not be the right neighbours!
 
             //take current node out of unoptimized and put into optimized
             opt.add(currentNode);
             unopt.remove(currentNode);
 
-            // update the best estimates and paths for these neighbours
-            updateEst(unoptNeighbours, estimates, shortestDst, currentNode);
+            // update the shortestDst estimates and paths for these neighbours
+            updateMaps(currentNode,unoptNeighbours, shortestDst, pathsToNodes);
         }
-
+        return pathsToNodes;
     }
 
-    private void updateEst(List<Node> nodes , Map<Node,Integer> ests ,
-                           Map<Node,Integer> shortestDst , Node current, Map<Node,ArrayList<Node>> paths ){
-        nodes.forEach(node -> {
+    private void updateMaps(Node current, List<Node> nodes, Map<Node,Integer> shortestDst,
+                           Map<Node,ArrayList<Node>> paths){
+        nodes.forEach(node -> { //ERROR node was not a neighbour of teh edge node - see further up
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(node).length();
             // check if this dst is shorter than current best estimate for neighbour
-            if (newPathDst < ests.get(node)) {
-                ests.replace(node, newPathDst);
+            if (newPathDst < shortestDst.get(node)) {
+                shortestDst.replace(node, newPathDst);
                 paths.get(node).add(current);       //This actually returns a boolean!
-                List<Node> newPath = new ArrayList<Node>();
-                newPath = paths.get(node);           //this should be an ArrayList!
-                paths.replace(node , newPath);
+                //List<Node> newPath = new ArrayList<>();
+                //newPath = paths.get(node);           //this should be an ArrayList!
+                //paths.replace(node , newPath);
             }
         });
-
     }
-
+    // method throws exception
+    private void makeJourney(EscapeState state, List<Node> journeyNodes) {
+        // 1st element should be equal to startingNode
+        if (state.getCurrentNode() != journeyNodes.get(0)) {
+            System.out.println("Cannot make this journey as you are not at the right starting point");
+        } else {
+            for (int i = 1; i < journeyNodes.size(); i++) {
+                state.moveTo(journeyNodes.get(i));
+            }
+        }
+    }
 }
+
