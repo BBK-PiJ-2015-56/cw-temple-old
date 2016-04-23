@@ -273,7 +273,7 @@ public class Explorer {
     private void updateMaps(Node current, List<Node> neighbours, Map<Node,Integer> shortestDst,
                            Map<Node,Stack<Node>> paths, Node exitNode){
         System.out.println("Updating maps, if shorter, for the following unoptimized neighbours: ");
-        neighbours.forEach(neighbour -> {
+        neighbours.forEach(neighbour -> { //ERROR EMPTY STACK EXCEPTION!!!!!!!!!!!!!!!!!!!!!!!!!
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(neighbour).length();
             System.out.print("[ " + neighbour.getId() +"- ");
@@ -282,18 +282,31 @@ public class Explorer {
             // check if this dst is shorter than current best estimate for neighbour
             if (newPathDst < shortestDst.get(neighbour)) {
                 System.out.print(" Updating this neighbour...");
-                System.out.print(" Top node was " + paths.get(neighbour).peek().getId());
-                //add the currentOptNode to this neighbours path stack, as a predecessor
-                // and add its predecessors aswell
-                Stack<Node> path = paths.get(neighbour);
-                path.push(current);
-                paths.replace(neighbour, path);
-                System.out.print("...UPDATE COMPLETE- top node should be " + current.getId());
+                Node previousTopNode;
+                Stack<Node> pathOfNeighbour;
+
+                System.out.print(" Top node was " + paths.get(neighbour).peek().getId() + " ");
+                //ERROR EMPTY STACK EXCEPTION AFTER THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //get a copy of path of neighbour, as it is now
+                pathOfNeighbour = paths.get(neighbour);
+
+                //get copy of currentNode path and reverse it
+                Stack<Node> currentNodesPath = paths.get(current);
+                Stack<Node> currentNodesPathReversed = new Stack<>();
+                while(!currentNodesPath.empty()){
+                    currentNodesPathReversed.push(currentNodesPath.pop());
+                }
+                // push each element of this path into the neighbours path
+                while(!currentNodesPathReversed.empty()){
+                    pathOfNeighbour.push(currentNodesPathReversed.pop());
+                }
+                paths.replace(neighbour, pathOfNeighbour);
+                System.out.print("...UPDATE COMPLETE- top node should be " + paths.get(current).peek());
                 System.out.println(" Top node is " + paths.get(neighbour).peek().getId());
                 System.out.println();
                 //update the shortest distance
                 shortestDst.replace(neighbour, newPathDst);
-            }else{
+            } else{
                 System.out.println(" Not updating this neighbour.");
                 System.out.println();
             }
