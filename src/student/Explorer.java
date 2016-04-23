@@ -196,7 +196,13 @@ public class Explorer {
         Map<Node, Stack<Node>> pathsToNodes = findPathsToNodes(start, exit, nodes, dstToNodes);
 
         //Make the journey from the state's currentNode to the exit, along the shortest path
-        makeJourney(state, pathsToNodes.get(state.getExit()));
+       // makeJourney(state, pathsToNodes.get(state.getExit()));
+        System.out.println("Printing the nodes in the exit path...");
+        int count = 1;
+        while(!pathsToNodes.get(exit).empty()){
+            System.out.print("  path node " + count + ": " + pathsToNodes.get(exit).pop().getId());
+            count++;
+        }
     }
 
     private Map<Node,Stack<Node>> findPathsToNodes(Node start, Node exit, List<Node> nodes, Map<Node, Integer> dstToNodes){
@@ -206,8 +212,15 @@ public class Explorer {
             Stack<Node> path = new Stack<>();
             path.push(nodes.get(i));
             pathsToNodes.put(nodes.get(i), path);
-            //System.out.println("UPDATE: top node in exit path now: " + pathsToNodes.get(exit).peek().getId());
         }
+        System.out.println("Paths created for each node, and put into map");
+        System.out.println("Here are the nodes and the top node of each path - ie the node itself:");
+        System.out.print("[ ");
+        for(int i = 0; i < nodes.size(); i++){
+            System.out.print(" (node: " + nodes.get(i).getId()
+                    + ", path: " + pathsToNodes.get(nodes.get(i)).peek().getId() + ") ");
+        }
+        System.out.println(" ]");
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
         List<Node> unopt = nodes;
         //A List of all nodes for which we do know shortest dst
@@ -219,9 +232,9 @@ public class Explorer {
         List<Node> unoptNeighbours;
 
         //The node we are optimizing next
-        Node currentOptNode;
+        Node currentOptNode = null;
         //optimize whilst there are still unoptimized nodes and exitNode has not been optimized
-        while(unopt.size() > 0) {
+        while(unopt.size() > 0 && ((currentOptNode == null ) || (currentOptNode != exit))) {
             // get another node to optimize - this is 'start' the first time
             currentOptNode = getNextNode(unopt, dstToNodes);
 
@@ -235,21 +248,19 @@ public class Explorer {
             System.out.println(" ]");
             // no need to carry on if we have the exit optimized
             if(currentOptNode.getId() == exit.getId()){
-                System.out.println("OPTIMIZING THE EXIT NODE. WE ARE FINISHED ");
-                return pathsToNodes;
-            }else {
-                //update the neighbours
-                neighboursSet = currentOptNode.getNeighbours();
-                neighbours = new ArrayList<>(neighboursSet);
-                unoptNeighbours = new ArrayList<>();
-                for (int i = 0; i < neighbours.size(); i++) {
-                    if (unopt.contains(neighbours.get(i))) {
-                        unoptNeighbours.add(neighbours.get(i));
-                    }
-                }
-                // update the shortestDst estimates and paths for these neighbours
-                updateMaps(currentOptNode, unoptNeighbours, dstToNodes, pathsToNodes, exit);
+                System.out.println("OPTIMIZING THE EXIT NODE. THIS IS THE LAST OPTIMIZATION");
             }
+            //update the neighbours
+            neighboursSet = currentOptNode.getNeighbours();
+            neighbours = new ArrayList<>(neighboursSet);
+            unoptNeighbours = new ArrayList<>();
+            for (int i = 0; i < neighbours.size(); i++) {
+                if (unopt.contains(neighbours.get(i))) {
+                    unoptNeighbours.add(neighbours.get(i));
+                }
+            }
+            // update the shortestDst estimates and paths for these neighbours
+            updateMaps(currentOptNode, unoptNeighbours, dstToNodes, pathsToNodes, exit);
         }
         return pathsToNodes;
     }
@@ -273,7 +284,7 @@ public class Explorer {
     private void updateMaps(Node current, List<Node> neighbours, Map<Node,Integer> shortestDst,
                            Map<Node,Stack<Node>> paths, Node exitNode){
         System.out.println("Updating maps, if shorter, for the following unoptimized neighbours: ");
-        neighbours.forEach(neighbour -> { //ERROR EMPTY STACK EXCEPTION!!!!!!!!!!!!!!!!!!!!!!!!!
+        neighbours.forEach(neighbour -> { 
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(neighbour).length();
             System.out.print("[ " + neighbour.getId() +"- ");
@@ -300,9 +311,9 @@ public class Explorer {
                 while(!currentNodesPathReversed.empty()){
                     pathOfNeighbour.push(currentNodesPathReversed.pop());
                 }
+                System.out.println("Finished popping reverse stack into pathOfNeighbour. now replacing the path in paths...");
                 paths.replace(neighbour, pathOfNeighbour);
-                System.out.print("...UPDATE COMPLETE- top node should be " + paths.get(current).peek());
-                System.out.println(" Top node is " + paths.get(neighbour).peek().getId());
+                System.out.print("...UPDATE COMPLETE- Top node is now " + paths.get(neighbour).peek().getId());
                 System.out.println();
                 //update the shortest distance
                 shortestDst.replace(neighbour, newPathDst);
