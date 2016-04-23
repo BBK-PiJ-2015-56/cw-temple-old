@@ -194,7 +194,12 @@ public class Explorer {
     private Map<Node,ArrayList<Node>> findPathsToNodes(Node start, List<Node> nodes, Map<Node, Integer> dstToNodes){
 
         Map<Node, ArrayList<Node>> pathsToNodes = new HashMap<>();
-        nodes.forEach(node -> pathsToNodes.put(node , new ArrayList<>()));
+        for(int i = 0; i < nodes.size(); i++){
+            List<Node> path = new ArrayList<>();
+            path.add(nodes.get(i));
+            nodes.forEach(node -> pathsToNodes.put(node , path));
+
+        }
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
         List<Node> unopt = nodes;
         //A List of all nodes for which we do know shortest dst
@@ -245,17 +250,21 @@ public class Explorer {
         }
         return nextNode;
     }
-
+    // This adds the currentOptNode to the paths for all unoptNeighbours if it makes a shorter route
+    // It also adds the nodes in the predecessor nodes recursively all the way back to the start
     private void updateMaps(Node current, List<Node> nodes, Map<Node,Integer> shortestDst,
                            Map<Node,ArrayList<Node>> paths){
-        nodes.forEach(node -> { //ERROR node was not a neighbour of the edge node - see further up
+        nodes.forEach(node -> {
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(node).length();
             // check if this dst is shorter than current best estimate for neighbour
             if (newPathDst < shortestDst.get(node)) {
+                //we add the currentOptNode to this neighbours path, as a predecessor
+                List<Node> newPath = new ArrayList<>;
+                newPath = // currentPath with currentOptNode added in front (or at back but then reverse later)
                 shortestDst.replace(node, newPathDst);
                 paths.get(node).add(current);       //This actually returns a boolean!
-                //List<Node> newPath = new ArrayList<>();
+
                 //newPath = paths.get(node);           //this should be an ArrayList!
                 //paths.replace(node , newPath);
             }
@@ -266,6 +275,8 @@ public class Explorer {
         // 1st element should be equal to startingNode
         if (state.getCurrentNode() != journeyNodes.get(0)) {
             System.out.println("Cannot make this journey as you are not at the right starting point");
+            System.out.println("The currentNode is " + state.getCurrentNode());
+            System.out.println("The journey staring node is " + journeyNodes.get(0));
         } else {
             for (int i = 1; i < journeyNodes.size(); i++) {
                 state.moveTo(journeyNodes.get(i));
