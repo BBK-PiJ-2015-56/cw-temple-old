@@ -177,19 +177,21 @@ public class Explorer {
         //A Map of the shortest distances from the start to every node, set to 100,000
         Map<Node , Integer> dstToNodes = new HashMap<>();
         nodes.forEach(node -> dstToNodes.put(node , 100000));
+        dstToNodes.replace(start, 0);
+        // note: start points to state.getCurrentNode()
 
         //fill in the maps to get the shortest paths and the corresponding distances
         //A Map of ordered predecessors for each node in path from start to node
         //These are initialized as having no predecessors.
         //Predecessors will be added as and when they are discovered to reduce the shortest distance
         //Also updates dstToNodes Map
-        Map<Node , ArrayList<Node>> pathsToNodes = findPathsToNodes(start, nodes);
+        Map<Node , ArrayList<Node>> pathsToNodes = findPathsToNodes(start, nodes, dstToNodes);
 
         //Make the journey from the state's currentNode to the exit, along the shortest path
         makeJourney(state, pathsToNodes.get(state.getExit()));
     }
 
-    private Map<Node,ArrayList<Node>> findPathsToNodes(Node start, List<Node> nodes ){
+    private Map<Node,ArrayList<Node>> findPathsToNodes(Node start, List<Node> nodes, Map<Node, Integer> dstToNodes){
 
         Map<Node, ArrayList<Node>> pathsToNodes = new HashMap<>();
         nodes.forEach(node -> pathsToNodes.put(node , new ArrayList<>()));
@@ -198,47 +200,55 @@ public class Explorer {
         //A List of all nodes for which we do know shortest dst
         List<Node> opt = new ArrayList<>();
 
-        // the node we are optimizing now
-        Node currentNode = start;
+        // The lists of neighbours to be used for each node
+        Collection<Node> neighboursSet;
+        List<Node> neighbours;
+        List<Node> unoptNeighbours;
+
+        //The node we are optimizing next
+        Node currentOptNode;
         while(unopt.size() > 0) {
-            //get current node's unoptimized neighbours
-            Set<Node> neighboursSet = currentNode.getNeighbours();
-            List<Node> neighbours = new ArrayList<>(neighboursSet);
-            List<Node> unoptNeighbours = new ArrayList<>();
-            neighbours.forEach(neighbour -> {
-                if(unopt.contains(neighbour)){
-                    unoptNeighbours.add(neighbour);
-                }
-            });
+            // get another node to optimize - this is 'start' the first time
+            currentOptNode = getNextNode(unopt, dstToNodes);
 
-            //update Current Node that we will optimize - no update needed first time
-            if(opt.size() != 0){
-                //set nextNode to the nearest unopt neighbour
-                Node nextNode = neighbours.get(0);
-                for (int i = 1; i < neighbours.size(); i++) {
-                    if (currentNode.getEdge(neighbours.get(i)).length()
-                            < currentNode.getEdge(nextNode).length()) {
-                        nextNode = neighbours.get(i);
-                    }
+            //take this node out of unoptimized and put into optimized
+            opt.add(currentOptNode);
+            unopt.remove(currentOptNode);
+
+            //update the neighbours
+            neighboursSet = currentOptNode.getNeighbours();
+            neighbours = new ArrayList<>(neighboursSet);
+            unoptNeighbours = new ArrayList<>();
+            for(int i = 0; i < neighbours.size(); i++){
+                if(unopt.contains(neighbours.get(i))) {
+                    unoptNeighbours.add(neighbours.get(i));
                 }
-                currentNode = nextNode;
             }
-            //ERROR: I have updates currentNode at the wrong place - it needs to be
-            //before I create unoptNeighbours, because otherwise they will not be the right neighbours!
-
-            //take current node out of unoptimized and put into optimized
-            opt.add(currentNode);
-            unopt.remove(currentNode);
 
             // update the shortestDst estimates and paths for these neighbours
-            updateMaps(currentNode,unoptNeighbours, shortestDst, pathsToNodes);
+            updateMaps(currentOptNode,unoptNeighbours, dstToNodes, pathsToNodes);
         }
         return pathsToNodes;
     }
 
+    //returns the node in unopt that has the lowest current shortestDst
+    //these dst have all been initially set to 100,000, except start node set to 0
+    //This should return the start node the first time
+    private Node getNextNode(List<Node> unopt, Map<Node, Integer> distances){
+        Node nextNode = unopt.get(0);
+        if(unopt.size() > 1) {
+            for (int i = 1; i < unopt.size(); i++) {
+                if (distances.get(unopt.get(i)) < distances.get(nextNode)){
+                    nextNode = unopt.get(i);
+                }
+            }
+        }
+        return nextNode;
+    }
+
     private void updateMaps(Node current, List<Node> nodes, Map<Node,Integer> shortestDst,
                            Map<Node,ArrayList<Node>> paths){
-        nodes.forEach(node -> { //ERROR node was not a neighbour of teh edge node - see further up
+        nodes.forEach(node -> { //ERROR node was not a neighbour of the edge node - see further up
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(node).length();
             // check if this dst is shorter than current best estimate for neighbour
