@@ -193,34 +193,33 @@ public class Explorer {
         //Predecessors will be added as and when they are discovered to reduce the shortest distance
         //Also updates dstToNodes Map
         //note: I will eventually change so it only returns path for exit to save time
-        Map<Node, Stack<Node>> pathsToNodes = findPathsToNodes(start, exit, nodes, dstToNodes);
+        Map<Node, List<Node>> pathsToNodes = findPathsToNodes(start, exit, nodes, dstToNodes);
 
         //Make the journey from the state's currentNode to the exit, along the shortest path
-       // makeJourney(state, pathsToNodes.get(state.getExit()));
-        System.out.println("Printing the nodes in the exit path...");
-        int count = 1;
-        while(!pathsToNodes.get(exit).empty()){
-            System.out.print("  path node " + count + ": " + pathsToNodes.get(exit).pop().getId());
-            count++;
+        makeJourney(state, pathsToNodes.get(exit));
+        /*System.out.println();
+        System.out.print("exit path nodes: [ ");
+        for(int i = 0; i < pathsToNodes.size(); i++){
+            System.out.print(pathsToNodes.get(exit).get(i).getId());
+            System.out.print(",  ");
         }
+        System.out.println(" ]");*/
+
     }
 
-    private Map<Node,Stack<Node>> findPathsToNodes(Node start, Node exit, List<Node> nodes, Map<Node, Integer> dstToNodes){
+    private Map<Node,List<Node>> findPathsToNodes(Node start, Node exit, List<Node> nodes, Map<Node, Integer> dstToNodes) {
         //create the Map of stacks(ie paths) and set each path to contain it's own node
-        Map<Node, Stack<Node>> pathsToNodes = new HashMap<>();
-        for(int i = 0; i < nodes.size(); i++){
-            Stack<Node> path = new Stack<>();
-            path.push(nodes.get(i));
+        Map<Node, List<Node>> pathsToNodes = new HashMap<>();
+        for (int i = 0; i < nodes.size(); i++) {
+            List<Node> path = new ArrayList<>();
+            path.add(nodes.get(i));
             pathsToNodes.put(nodes.get(i), path);
         }
-        System.out.println("Paths created for each node, and put into map");
-        System.out.println("Here are the nodes and the top node of each path - ie the node itself:");
-        System.out.print("[ ");
-        for(int i = 0; i < nodes.size(); i++){
-            System.out.print(" (node: " + nodes.get(i).getId()
-                    + ", path: " + pathsToNodes.get(nodes.get(i)).peek().getId() + ") ");
-        }
-        System.out.println(" ]");
+        System.out.print("Paths created for each node, and put into map...");
+        // check pathsToNodes constructed properly
+        Node exampleNode = nodes.get(0);
+        System.out.println("Example- node: " + exampleNode.getId() + "  path: " + (pathsToNodes.get(exampleNode).get(0)).getId());
+
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
         List<Node> unopt = nodes;
         //A List of all nodes for which we do know shortest dst
@@ -233,12 +232,12 @@ public class Explorer {
 
         //The node we are optimizing next
         Node currentOptNode = null;
-        //optimize whilst there are still unoptimized nodes and exitNode has not been optimized
+
         while(unopt.size() > 0 && ((currentOptNode == null ) || (currentOptNode != exit))) {
             // get another node to optimize - this is 'start' the first time
             currentOptNode = getNextNode(unopt, dstToNodes);
 
-            System.out.println("The node we are adding to opt and optimizing is " + currentOptNode.getId());
+            System.out.println("next node for opt: " + currentOptNode.getId());
 
             //take this node out of unoptimized and put into optimized
             opt.add(currentOptNode);
@@ -282,49 +281,62 @@ public class Explorer {
     // This adds the currentOptNode to the paths for all unoptNeighbours if it makes a shorter route
     // It also adds the nodes in the predecessor nodes recursively all the way back to the start
     private void updateMaps(Node current, List<Node> neighbours, Map<Node,Integer> shortestDst,
-                           Map<Node,Stack<Node>> paths, Node exitNode){
-        System.out.println("Updating maps, if shorter, for the following unoptimized neighbours: ");
-        neighbours.forEach(neighbour -> { 
+                            Map<Node,List<Node>> paths, Node exitNode){
+        System.out.println("Updating maps (if shorter) for neighbours....");
+        neighbours.forEach(neighbour -> {
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(neighbour).length();
             System.out.print("[ " + neighbour.getId() +"- ");
             System.out.print("current dst: " + shortestDst.get(neighbour) );
             System.out.print(" new dst: " + newPathDst + " ]");
+            System.out.println();
             // check if this dst is shorter than current best estimate for neighbour
             if (newPathDst < shortestDst.get(neighbour)) {
-                System.out.print(" Updating this neighbour...");
+                System.out.println(" Updating path for " + neighbour.getId() + "...");
                 Node previousTopNode;
-                Stack<Node> pathOfNeighbour;
-
-                System.out.print(" Top node was " + paths.get(neighbour).peek().getId() + " ");
-                //ERROR EMPTY STACK EXCEPTION AFTER THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                //get a copy of path of neighbour, as it is now
-                pathOfNeighbour = paths.get(neighbour);
-
-                //get copy of currentNode path and reverse it
-                Stack<Node> currentNodesPath = paths.get(current);
-                Stack<Node> currentNodesPathReversed = new Stack<>();
-                while(!currentNodesPath.empty()){
-                    currentNodesPathReversed.push(currentNodesPath.pop());
+                //path for this neighbour, before updating
+                List<Node> pathOfNeighbour = paths.get(neighbour);
+                System.out.print(" Neighbour path: [");
+                for(int i = 0; i < pathOfNeighbour.size(); i++){
+                    System.out.print(pathOfNeighbour.get(i).getId());
                 }
-                // push each element of this path into the neighbours path
-                while(!currentNodesPathReversed.empty()){
-                    pathOfNeighbour.push(currentNodesPathReversed.pop());
+                System.out.println("]");
+
+                //get the path of current node
+                List<Node> pathOfCurrent = paths.get(current);
+                System.out.print(" Current path: [");
+                for(int i = 0; i < pathOfCurrent.size(); i++){
+                    System.out.print(pathOfCurrent.get(i).getId());
                 }
-                System.out.println("Finished popping reverse stack into pathOfNeighbour. now replacing the path in paths...");
-                paths.replace(neighbour, pathOfNeighbour);
-                System.out.print("...UPDATE COMPLETE- Top node is now " + paths.get(neighbour).peek().getId());
+                System.out.println("]");
+                System.out.println("There are " + pathOfCurrent.size() + " nodes to add.");
+                System.out.println(" CHECK!!! NEW PATH SIZE SHOULD BE " + (pathOfCurrent.size() + pathOfNeighbour.size()) );
+
+                //add all nodes from current node's path into neighbour's path
+                for(int i = 0; i < pathOfCurrent.size(); i++){
+                    System.out.print("adding " + pathOfCurrent.get(i).getId() + " to path...");
+                    pathOfNeighbour.add(pathOfCurrent.get(i));
+                }
                 System.out.println();
+                System.out.println("Amended path for " + neighbour.getId() + " to: [");
+                for(int i = 0; i < pathOfNeighbour.size(); i++){
+                    System.out.print(pathOfNeighbour.get(i).getId() + ", ");
+                }
+                System.out.println("]");
+                //replace the path of neighbour in paths
+                paths.replace(neighbour, pathOfNeighbour);
+                System.out.print("...UPDATE COMPLETE- ");
+                System.out.println(" CHECK!!! NEW PATH SIZE IS " + (paths.get(neighbour).size()));
+
                 //update the shortest distance
                 shortestDst.replace(neighbour, newPathDst);
             } else{
-                System.out.println(" Not updating this neighbour.");
+                System.out.println(" Not updating neighbour.");
                 System.out.println();
             }
         });
     }
-    // method throws exception
-    private void makeJourney(EscapeState state, Stack<Node> journeyNodes) {
+    private void makeJourney(EscapeState state, List<Node> journeyNodes) {
         // 1st element should be equal to startingNode
         if (state.getCurrentNode() != journeyNodes.peek()) {
             System.out.println("Cannot make this journey as you are not at the right starting point");
@@ -337,4 +349,3 @@ public class Explorer {
         }
     }
 }
-
