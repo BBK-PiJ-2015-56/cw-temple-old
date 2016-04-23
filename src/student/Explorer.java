@@ -206,7 +206,7 @@ public class Explorer {
             Stack<Node> path = new Stack<>();
             path.push(nodes.get(i));
             pathsToNodes.put(nodes.get(i), path);
-            System.out.println("UPDATE: top node in exit path now: " + pathsToNodes.get(exit).peek().getId());
+            //System.out.println("UPDATE: top node in exit path now: " + pathsToNodes.get(exit).peek().getId());
         }
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
         List<Node> unopt = nodes;
@@ -220,26 +220,36 @@ public class Explorer {
 
         //The node we are optimizing next
         Node currentOptNode;
+        //optimize whilst there are still unoptimized nodes and exitNode has not been optimized
         while(unopt.size() > 0) {
             // get another node to optimize - this is 'start' the first time
             currentOptNode = getNextNode(unopt, dstToNodes);
 
+            System.out.println("The node we are adding to opt and optimizing is " + currentOptNode.getId());
+
             //take this node out of unoptimized and put into optimized
             opt.add(currentOptNode);
             unopt.remove(currentOptNode);
-
-            //update the neighbours
-            neighboursSet = currentOptNode.getNeighbours();
-            neighbours = new ArrayList<>(neighboursSet);
-            unoptNeighbours = new ArrayList<>();
-            for(int i = 0; i < neighbours.size(); i++){
-                if(unopt.contains(neighbours.get(i))) {
-                    unoptNeighbours.add(neighbours.get(i));
+            System.out.print("nodes in opt: [ ");
+            opt.forEach(node -> System.out.print(node.getId() + ", "));
+            System.out.println(" ]");
+            // no need to carry on if we have the exit optimized
+            if(currentOptNode.getId() == exit.getId()){
+                System.out.println("OPTIMIZING THE EXIT NODE. WE ARE FINISHED ");
+                return pathsToNodes;
+            }else {
+                //update the neighbours
+                neighboursSet = currentOptNode.getNeighbours();
+                neighbours = new ArrayList<>(neighboursSet);
+                unoptNeighbours = new ArrayList<>();
+                for (int i = 0; i < neighbours.size(); i++) {
+                    if (unopt.contains(neighbours.get(i))) {
+                        unoptNeighbours.add(neighbours.get(i));
+                    }
                 }
+                // update the shortestDst estimates and paths for these neighbours
+                updateMaps(currentOptNode, unoptNeighbours, dstToNodes, pathsToNodes, exit);
             }
-
-            // update the shortestDst estimates and paths for these neighbours
-            updateMaps(currentOptNode,unoptNeighbours, dstToNodes, pathsToNodes, exit);
         }
         return pathsToNodes;
     }
@@ -260,21 +270,32 @@ public class Explorer {
     }
     // This adds the currentOptNode to the paths for all unoptNeighbours if it makes a shorter route
     // It also adds the nodes in the predecessor nodes recursively all the way back to the start
-    private void updateMaps(Node current, List<Node> nodes, Map<Node,Integer> shortestDst,
+    private void updateMaps(Node current, List<Node> neighbours, Map<Node,Integer> shortestDst,
                            Map<Node,Stack<Node>> paths, Node exitNode){
-        nodes.forEach(node -> {
+        System.out.println("Updating maps, if shorter, for the following unoptimized neighbours: ");
+        neighbours.forEach(neighbour -> {
             //sum the dst from start to current with dst from current to this neighbour
-            int newPathDst = shortestDst.get(current) + current.getEdge(node).length();
+            int newPathDst = shortestDst.get(current) + current.getEdge(neighbour).length();
+            System.out.print("[ " + neighbour.getId() +"- ");
+            System.out.print("current dst: " + shortestDst.get(neighbour) );
+            System.out.print(" new dst: " + newPathDst + " ]");
             // check if this dst is shorter than current best estimate for neighbour
-            if (newPathDst < shortestDst.get(node)) {
+            if (newPathDst < shortestDst.get(neighbour)) {
+                System.out.print(" Updating this neighbour...");
+                System.out.print(" Top node was " + paths.get(neighbour).peek().getId());
                 //add the currentOptNode to this neighbours path stack, as a predecessor
                 // and add its predecessors aswell
-                Stack<Node> path = paths.get(node);
+                Stack<Node> path = paths.get(neighbour);
                 path.push(current);
-                paths.replace(node, path);
-                System.out.print("top node in exit path: " + paths.get(exitNode).peek().getId());
+                paths.replace(neighbour, path);
+                System.out.print("...UPDATE COMPLETE- top node should be " + current.getId());
+                System.out.println(" Top node is " + paths.get(neighbour).peek().getId());
+                System.out.println();
                 //update the shortest distance
-                shortestDst.replace(node, newPathDst);
+                shortestDst.replace(neighbour, newPathDst);
+            }else{
+                System.out.println(" Not updating this neighbour.");
+                System.out.println();
             }
         });
     }
