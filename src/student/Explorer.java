@@ -163,21 +163,28 @@ public class Explorer {
      */
     public void escape(EscapeState state) {
         //TODO: Escape from the cavern before time runs out
+        Long startId = state.getCurrentNode().getId();
+        Long exitId = state.getExit().getId();
         System.out.println("starting escape.....");
-        System.out.println("current nodeId is " + state.getCurrentNode().getId());
-        System.out.println("exit nodeId is " + state.getExit().getId());
+        System.out.println("start nodeId is " + startId);
+        System.out.println("exit nodeId is " + exitId);
         System.out.println("time remaining is....." + state.getTimeRemaining());
         System.out.println("There are " + state.getVertices().size() + " nodes.");
 
         Node start = state.getCurrentNode();
+        Node exit = state.getExit();
+
         //A List of all Nodes
         Collection<Node> nodesCollection= state.getVertices();
         List<Node> nodes = new ArrayList<>(nodesCollection);
 
         //A Map of the shortest distances from the start to every node, set to 100,000
-        Map<Node , Integer> dstToNodes = new HashMap<>();
+        Map<Node, Integer> dstToNodes = new HashMap<>();
         nodes.forEach(node -> dstToNodes.put(node , 100000));
         dstToNodes.replace(start, 0);
+        System.out.print("The distances to all nodes are: [ ");
+        nodes.forEach(node -> System.out.print((dstToNodes.get(node)) + ", "));
+        System.out.println(" ]");
         // note: start points to state.getCurrentNode()
 
         //fill in the maps to get the shortest paths and the corresponding distances
@@ -185,20 +192,21 @@ public class Explorer {
         //These are initialized as having no predecessors.
         //Predecessors will be added as and when they are discovered to reduce the shortest distance
         //Also updates dstToNodes Map
-        Map<Node , ArrayList<Node>> pathsToNodes = findPathsToNodes(start, nodes, dstToNodes);
+        //note: I will eventually change so it only returns path for exit to save time
+        Map<Node, Stack<Node>> pathsToNodes = findPathsToNodes(start, exit, nodes, dstToNodes);
 
         //Make the journey from the state's currentNode to the exit, along the shortest path
         makeJourney(state, pathsToNodes.get(state.getExit()));
     }
 
-    private Map<Node,ArrayList<Node>> findPathsToNodes(Node start, List<Node> nodes, Map<Node, Integer> dstToNodes){
-
-        Map<Node, ArrayList<Node>> pathsToNodes = new HashMap<>();
+    private Map<Node,Stack<Node>> findPathsToNodes(Node start, Node exit, List<Node> nodes, Map<Node, Integer> dstToNodes){
+        //create the Map of stacks(ie paths) and set each path to contain it's own node
+        Map<Node, Stack<Node>> pathsToNodes = new HashMap<>();
         for(int i = 0; i < nodes.size(); i++){
-            List<Node> path = new ArrayList<>();
-            path.add(nodes.get(i));
-            nodes.forEach(node -> pathsToNodes.put(node , path));
-
+            Stack<Node> path = new Stack<>();
+            path.push(nodes.get(i));
+            pathsToNodes.put(nodes.get(i), path);
+            System.out.println("UPDATE: top node in exit path now: " + pathsToNodes.get(exit).peek().getId());
         }
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
         List<Node> unopt = nodes;
@@ -231,7 +239,7 @@ public class Explorer {
             }
 
             // update the shortestDst estimates and paths for these neighbours
-            updateMaps(currentOptNode,unoptNeighbours, dstToNodes, pathsToNodes);
+            updateMaps(currentOptNode,unoptNeighbours, dstToNodes, pathsToNodes, exit);
         }
         return pathsToNodes;
     }
@@ -253,33 +261,33 @@ public class Explorer {
     // This adds the currentOptNode to the paths for all unoptNeighbours if it makes a shorter route
     // It also adds the nodes in the predecessor nodes recursively all the way back to the start
     private void updateMaps(Node current, List<Node> nodes, Map<Node,Integer> shortestDst,
-                           Map<Node,ArrayList<Node>> paths){
+                           Map<Node,Stack<Node>> paths, Node exitNode){
         nodes.forEach(node -> {
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(node).length();
             // check if this dst is shorter than current best estimate for neighbour
             if (newPathDst < shortestDst.get(node)) {
-                //we add the currentOptNode to this neighbours path, as a predecessor
-                List<Node> newPath = new ArrayList<>;
-                newPath = // currentPath with currentOptNode added in front (or at back but then reverse later)
+                //add the currentOptNode to this neighbours path stack, as a predecessor
+                // and add its predecessors aswell
+                Stack<Node> path = paths.get(node);
+                path.push(current);
+                paths.replace(node, path);
+                System.out.print("top node in exit path: " + paths.get(exitNode).peek().getId());
+                //update the shortest distance
                 shortestDst.replace(node, newPathDst);
-                paths.get(node).add(current);       //This actually returns a boolean!
-
-                //newPath = paths.get(node);           //this should be an ArrayList!
-                //paths.replace(node , newPath);
             }
         });
     }
     // method throws exception
-    private void makeJourney(EscapeState state, List<Node> journeyNodes) {
+    private void makeJourney(EscapeState state, Stack<Node> journeyNodes) {
         // 1st element should be equal to startingNode
-        if (state.getCurrentNode() != journeyNodes.get(0)) {
+        if (state.getCurrentNode() != journeyNodes.peek()) {
             System.out.println("Cannot make this journey as you are not at the right starting point");
-            System.out.println("The currentNode is " + state.getCurrentNode());
-            System.out.println("The journey staring node is " + journeyNodes.get(0));
+            System.out.println("The currentNodeId is " + state.getCurrentNode().getId());
+            System.out.println("The journey starting nodeId is " + journeyNodes.peek().getId());
         } else {
             for (int i = 1; i < journeyNodes.size(); i++) {
-                state.moveTo(journeyNodes.get(i));
+                state.moveTo(journeyNodes.pop());
             }
         }
     }
