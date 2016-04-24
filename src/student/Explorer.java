@@ -196,7 +196,8 @@ public class Explorer {
         Map<Node, List<Node>> pathsToNodes = findPathsToNodes(start, exit, nodes, dstToNodes);
 
         //Make the journey from the state's currentNode to the exit, along the shortest path
-        makeJourney(state, pathsToNodes.get(exit));
+        //NOTE: NO NEED TO PASS IN 2ND PARAMETER - NEED TO DELETE
+        makeJourney(state, pathsToNodes.get(exit), pathsToNodes);
         /*System.out.println();
         System.out.print("exit path nodes: [ ");
         for(int i = 0; i < pathsToNodes.size(); i++){
@@ -234,32 +235,32 @@ public class Explorer {
         Node currentOptNode = null;
 
         while(unopt.size() > 0 && ((currentOptNode == null ) || (currentOptNode != exit))) {
-            // get another node to optimize - this is 'start' the first time
-            currentOptNode = getNextNode(unopt, dstToNodes);
+                // get another node to optimize - this is 'start' the first time
+                currentOptNode = getNextNode(unopt, dstToNodes);
 
-            System.out.println("next node for opt: " + currentOptNode.getId());
+                System.out.println("next node for opt: " + currentOptNode.getId());
 
-            //take this node out of unoptimized and put into optimized
-            opt.add(currentOptNode);
-            unopt.remove(currentOptNode);
-            System.out.print("nodes in opt: [ ");
-            opt.forEach(node -> System.out.print(node.getId() + ", "));
-            System.out.println(" ]");
-            // no need to carry on if we have the exit optimized
-            if(currentOptNode.getId() == exit.getId()){
-                System.out.println("OPTIMIZING THE EXIT NODE. THIS IS THE LAST OPTIMIZATION");
-            }
-            //update the neighbours
-            neighboursSet = currentOptNode.getNeighbours();
-            neighbours = new ArrayList<>(neighboursSet);
-            unoptNeighbours = new ArrayList<>();
-            for (int i = 0; i < neighbours.size(); i++) {
-                if (unopt.contains(neighbours.get(i))) {
-                    unoptNeighbours.add(neighbours.get(i));
+                //take this node out of unoptimized and put into optimized
+                opt.add(currentOptNode);
+                unopt.remove(currentOptNode);
+                System.out.print("nodes in opt: [ ");
+                opt.forEach(node -> System.out.print(node.getId() + ", "));
+                System.out.println(" ]");
+                // no need to carry on if we have the exit optimized
+                if(currentOptNode.getId() == exit.getId()){
+                    System.out.println("OPTIMIZING THE EXIT NODE. THIS IS THE LAST OPTIMIZATION");
                 }
-            }
-            // update the shortestDst estimates and paths for these neighbours
-            updateMaps(currentOptNode, unoptNeighbours, dstToNodes, pathsToNodes, exit);
+                //update the neighbours
+                neighboursSet = currentOptNode.getNeighbours();
+                neighbours = new ArrayList<>(neighboursSet);
+                unoptNeighbours = new ArrayList<>();
+                for (int i = 0; i < neighbours.size(); i++) {
+                    if (unopt.contains(neighbours.get(i))) {
+                        unoptNeighbours.add(neighbours.get(i));
+                    }
+                }
+                // update the shortestDst estimates and paths for these neighbours
+                updateMaps(currentOptNode, unoptNeighbours, dstToNodes, pathsToNodes, exit);
         }
         return pathsToNodes;
     }
@@ -306,7 +307,7 @@ public class Explorer {
                 List<Node> pathOfCurrent = paths.get(current);
                 System.out.print(" Current path: [");
                 for(int i = 0; i < pathOfCurrent.size(); i++){
-                    System.out.print(pathOfCurrent.get(i).getId());
+                    System.out.print(pathOfCurrent.get(i).getId() + ", ");
                 }
                 System.out.println("]");
                 System.out.println("There are " + pathOfCurrent.size() + " nodes to add.");
@@ -336,15 +337,50 @@ public class Explorer {
             }
         });
     }
-    private void makeJourney(EscapeState state, List<Node> journeyNodes) {
+    private void makeJourney(EscapeState state, List<Node> journeyNodes, Map<Node, List<Node>> pathsForAllNodes) {
+        System.out.println("Our journey starting position is " + state.getCurrentNode().getId());
+        System.out.print("The journey path list is [ ");
+        for(int i = 0; i < journeyNodes.size(); i++){
+            System.out.print((journeyNodes.get(i).getId()) + ", ");
+        }
+        System.out.println(" ]");
+
         // 1st element should be equal to startingNode
-        if (state.getCurrentNode() != journeyNodes.peek()) {
+        if (state.getCurrentNode() != journeyNodes.get(journeyNodes.size()-1)) {
             System.out.println("Cannot make this journey as you are not at the right starting point");
             System.out.println("The currentNodeId is " + state.getCurrentNode().getId());
-            System.out.println("The journey starting nodeId is " + journeyNodes.peek().getId());
+            System.out.println("The journey starting nodeId is " + journeyNodes.get(journeyNodes.size()-1).getId());
         } else {
-            for (int i = 1; i < journeyNodes.size(); i++) {
-                state.moveTo(journeyNodes.pop());
+            for (int i = journeyNodes.size()-2; i >= 0; i--) {
+                System.out.print("   current pos:" + state.getCurrentNode().getId());
+                System.out.print("..next intended move:" + journeyNodes.get(i).getId() + "  ");
+                Set<Node> neighboursSet = state.getCurrentNode().getNeighbours();
+                List<Node> neighboursList = Arrays.asList(neighboursSet.toArray(new Node[neighboursSet.size()]));
+                Boolean containsNextMove = neighboursSet.contains(journeyNodes.get(i));
+                if(!containsNextMove){
+                    System.out.println("WARNING: next move is not a neighbour of current pos!!!");
+                    System.out.print("The neighbours for the current node are: ");
+                    System.out.print("[");
+                    for(int j = 0; j < neighboursSet.size(); j++){
+                        System.out.print(neighboursList.get(j).getId() + ", ");
+                    }
+                    System.out.println(" ]");
+
+                    System.out.println("The separate paths for every node in the journey path are as follows: ");
+                    for(int k = 0; k< journeyNodes.size(); k++){
+                        List<Node> pathForThisNode = pathsForAllNodes.get(journeyNodes.get(k));
+                        System.out.println("node(" + journeyNodes.get(k).getId() + ")");
+                        System.out.print("Path(");
+                        for(int n = 0; n < pathForThisNode.size(); n++){
+                            System.out.print(pathForThisNode.get(n).getId() + ", ");
+                        }
+                        System.out.println(")");
+                    }
+                    System.out.println(" ]");
+                    // print the path for each node in the path
+                }
+                state.moveTo(journeyNodes.get(i));
+                System.out.println();
             }
         }
     }
