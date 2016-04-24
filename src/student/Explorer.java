@@ -102,79 +102,18 @@ public class Explorer {
             // now need to check 2 lists and decide next move
             long nextNodeId;
             // move to the first node in unvisitedNeighbours, if such a node exists
-            if (unvisitedNeighbours.size() > 0) {
+            if (!unvisitedNeighbours.isEmpty()) {
                 System.out.println("There is an unvisited neighbour. We move to the one nearest the orb");
                 nextNodeId = unvisitedNeighbours.get(0).getId();
-                move(nextNodeId, visitedNodes, state);
             } else {
-                System.out.println("All neighbours are visited. We move to the visited neighbour nearest to the orb");
+                System.out.println("All neighbours are visited. We move to a random neighbour");
+                Collections.shuffle(visitedNeighbours); 
                 nextNodeId = visitedNeighbours.get(0).getId();
-                //ensure it less often gets stuck in a loop between 2,3 or 4 nodes
-                if (nextNodeId == visitedNodes.get(visitedNodes.size() - 1)) {
-                    if (visitedNeighbours.size() > 1) {
-                        nextNodeId = visitedNeighbours.get(1).getId();
-                    }
-                }
-                // If there is more than one visited node, then rule the secondLast out if there is another neighbour
-                if (visitedNodes.size() > 1) {
-                    if (nextNodeId == visitedNodes.get(visitedNodes.size() - 2)) {
-                        if (visitedNeighbours.size() > 1) {
-                            Collections.shuffle(visitedNeighbours);
-                            nextNodeId = visitedNeighbours.get(0).getId();
+            }
+            move(nextNodeId, visitedNodes, state);
+        }
+    }
 
-                        }
-                    }
-                }
-                // If there is more than two visited nodes, then rule the thirdlast out if there is another neighbour
-                if (visitedNodes.size() > 2) {
-                    if (nextNodeId == visitedNodes.get(visitedNodes.size() - 2)) {
-                        if (visitedNeighbours.size() > 1) {
-                            Collections.shuffle(visitedNeighbours);
-                            nextNodeId = visitedNeighbours.get(0).getId();
-                        }
-                    }
-                }
-                //check if it is stuck in a loop of 3 or more squares. if 0, then no loop
-                int sizeOfLoop = stuckInLoop(visitedNodes, blacklist, state);
-                if (sizeOfLoop > 0) {
-                        System.out.println("STUCK IN LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                        System.out.println("We have moved back to the end of the loop and blacklisted it");
-                        // make 8 moves away from Orb and then 4 at random
-                        //System.out.println(" Need to move away...");
-                        //moveAwayFromOrb(state, visitedNodes, 7);
-                        //moveAtRandom(state, visitedNodes, 15);
-                } else {
-                        move(nextNodeId, visitedNodes, state);
-                }
-            }
-        }
-    }
-    // a method to check if george is stuck, and also adds to blacklist if so
-    private int stuckInLoop(List<Long> visitedNodes, List<Long> blacklist, ExplorationState state){
-        int sizeOfLoop = 0;
-        int count = visitedNodes.size()-2;
-        Boolean countNodeIsInLoop = true;
-        while(countNodeIsInLoop && (count > 0)){
-            long tempId = visitedNodes.get(count);
-            //assume no loop
-            countNodeIsInLoop = false;
-            //for each visited node before this node
-            for(int i = 0; i < count; i++){
-                if(visitedNodes.get(i) == tempId) {
-                    //this node has been visited more than once
-                    countNodeIsInLoop = true;
-                    //move one step back along this loop, then blacklist that step
-                    move(tempId, visitedNodes, state);
-                    blacklist.add(tempId);
-                    System.out.print("node added to blacklist...");
-                }
-            }
-            System.out.println();
-            count--;
-            sizeOfLoop++;
-        }
-        return sizeOfLoop;
-    }
     // a method to move to a neighbour, updating visited nodes when move is made
     private void move(long nextNode, List<Long> visitedNodes, ExplorationState state){
         long nextNodeId;
@@ -186,87 +125,6 @@ public class Explorer {
         System.out.println();
     }
 
-
-    private void moveAwayFromOrb(ExplorationState state , List<Long> visitedNodes, int moves){
-        Collection<NodeStatus> neighboursCollection;
-        List<NodeStatus> neighbours;
-        List<NodeStatus> unvisitedNeighbours;
-        List<NodeStatus> visitedNeighbours;
-
-
-        long nextNodeId;
-        for(int i = 0; i < moves; i++){
-            neighboursCollection = state.getNeighbours();
-            //convert the new neighbours collection into a new list
-            neighbours = new ArrayList<>(neighboursCollection);
-            Collections.sort(neighbours);
-            unvisitedNeighbours = new ArrayList<>();
-            visitedNeighbours = new ArrayList<>();
-
-            // split the sorted list into 2 sublists
-            splitList(visitedNodes, neighbours, unvisitedNeighbours, visitedNeighbours);
-            if (unvisitedNeighbours.size() > 0) {
-                System.out.print("step nr: " + (i+1) + " towards orb to unvisited...");
-                System.out.println();
-                //make next node the one furthest from the orb
-                nextNodeId = unvisitedNeighbours.get(0).getId();
-            } else {
-                System.out.print("step nr: " + (i + 1) + " away from orb...to visited");
-                System.out.println();
-                //make next node the one furthest from the orb
-                nextNodeId = visitedNeighbours.get((visitedNeighbours.size() - 1)).getId();
-                //ensure it less often gets stuck in a loop between 2,3 or 4 nodes
-                if (nextNodeId == visitedNodes.get(visitedNodes.size() - 1)) {
-                    if (visitedNeighbours.size() > 1) {
-                        nextNodeId = visitedNeighbours.get(1).getId();
-                    }
-                }
-            }
-            move(nextNodeId, visitedNodes, state);
-        }
-    }
-   // method to go back to start if completely stuck. It should then prioritise other unvisited nodes from there
-   // private void moveBackToExit(ExplorationState state , List<Long> visitedNodes, int moves){
-   // }
-    private void moveAtRandom(ExplorationState state , List<Long> visitedNodes, int moves){
-        Collection<NodeStatus> neighboursCollection;
-        List<NodeStatus> neighbours;
-        List<NodeStatus> unvisitedNeighbours;
-        List<NodeStatus> visitedNeighbours;
-
-        long nextNodeId;
-        for(int i = 0; i < moves; i++){
-            neighboursCollection = state.getNeighbours();
-            //convert the new neighbours collection into a new list
-            neighbours = new ArrayList<>(neighboursCollection);
-            Collections.sort(neighbours);
-            unvisitedNeighbours = new ArrayList<>();
-            visitedNeighbours = new ArrayList<>();
-
-            // split the sorted list into 2 sublists
-            NodeStatus tempNode;
-            splitList(visitedNodes, neighbours, unvisitedNeighbours, visitedNeighbours);
-            if (unvisitedNeighbours.size() > 0) {
-                System.out.print("step nr: " + (i+1) + " towards orb unvisited...");
-                System.out.println();
-                //make next node the one furthest from the orb
-                nextNodeId = unvisitedNeighbours.get(0).getId();
-            } else {
-                System.out.print("step nr: " + (i + 1) + " at random...to visited");
-                System.out.println();
-                //make next node the one furthest from the orb
-                Collections.shuffle(visitedNeighbours);
-                nextNodeId = visitedNeighbours.get(0).getId();
-                //ensure it less often gets stuck in a loop between 2,3 or 4 nodes
-                if (nextNodeId == visitedNodes.get(visitedNodes.size() - 1)) {
-                    if (visitedNeighbours.size() > 1) {
-                        nextNodeId = visitedNeighbours.get(1).getId();
-                    }
-                }
-            }
-            move(nextNodeId, visitedNodes, state);
-        }
-    }
     private void splitList (List<Long> visitedNodes, List<NodeStatus> neighbours,
                             List<NodeStatus> unvisitedNeighbours, List<NodeStatus> visitedNeighbours){
         NodeStatus tempNode;
