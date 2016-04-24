@@ -43,7 +43,7 @@ public class Explorer {
      */
     public void explore(ExplorationState state) {
         System.out.println("starting to explore.......");
-        List<Long> visitedNodes = new ArrayList<Long>();
+        List<Long> visitedNodes = new ArrayList<>();
         Collection<NodeStatus> neighboursCollection;
         List<NodeStatus> neighbours;
         List<NodeStatus> unvisitedNeighbours;
@@ -55,17 +55,17 @@ public class Explorer {
             System.out.println("This distance away from the orb is: " + state.getDistanceToTarget());
             neighboursCollection = state.getNeighbours();
             //convert the new neighbours collection into a new list
-            neighbours = new ArrayList<NodeStatus>(neighboursCollection);
+            neighbours = new ArrayList<>(neighboursCollection);
             //sort the list
             Collections.sort(neighbours);
             System.out.println("Here is the full list of neighbours for the current node");
             neighbours.forEach(node -> System.out.print("  node id: " + node.getId()));
-            //get three empty lists for splitting up the neighbours
+            //get empty lists for splitting up the neighbours
             System.out.println();
-            unvisitedNeighbours = new ArrayList<NodeStatus>();
-            visitedNeighbours = new ArrayList<NodeStatus>();
+            unvisitedNeighbours = new ArrayList<>();
+            visitedNeighbours = new ArrayList<>();
 
-            // split the sorted list into three sublists
+            // split the sorted list into 2 sublists
             for(int i = 0; i < neighbours.size(); i++){
                 NodeStatus tempNode = neighbours.get(i);
                 if (visitedNodes.contains(tempNode.getId())) {
@@ -92,7 +92,7 @@ public class Explorer {
             } else{
                 System.out.print("All neighbours have been visited. ");
                 System.out.println("We move to the neighbour closest to the orb, " +
-                        "excluding the last node visited if possible.");
+                        "excluding the last few nodes visited if possible.");
                 // note: alternatively, I could make it go back to previous and keep doing this until
                 //it finds an unvisited neighbour, but I did this before and ran into problems
                 nextNodeId = visitedNeighbours.get(0).getId();
@@ -103,21 +103,42 @@ public class Explorer {
                 // if the nearest neighbour to orb is one of the previous three nodes, then rule it out if there
                 // is another neighbour, in order to prevent a repetitive cycle between 2,3 or 4 nodes
                 // I could increase this to last 4 or 5 nodes in case of a large repeated cycle
-                long lastNode = visitedNodes.get(visitedNodes.size()-2);
-                long secondLastNode = visitedNodes.get(visitedNodes.size()-3);
-                long thirdLastNode = visitedNodes.get(visitedNodes.size()-4);
+                if(visitedNeighbours.size() > 1) {
+                    long lastNode = visitedNodes.get(visitedNodes.size() - 2);
+                    long secondLastNode = lastNode;
+                    long thirdLastNode = lastNode;
+                    long fourthLastNode = lastNode;
+                    long fifthLastNode = lastNode;
+                    long sixthLastNode = lastNode;
 
-                if((nextNodeId == lastNode) || (nextNodeId == secondLastNode) || (nextNodeId == thirdLastNode) ){
-                    if(visitedNeighbours.size() > 1){
+                    if (visitedNodes.size() > 2) {
+                        secondLastNode = visitedNodes.get(visitedNodes.size() - 3);
+                    }
+                    if (visitedNodes.size() > 3) {
+                        thirdLastNode = visitedNodes.get(visitedNodes.size() - 4);
+                    }
+                    if (visitedNodes.size() > 4) {
+                        fourthLastNode = visitedNodes.get(visitedNodes.size() - 5);
+                    }
+                    if (visitedNodes.size() > 5) {
+                        fifthLastNode = visitedNodes.get(visitedNodes.size() - 6);
+                    }
+                    if (visitedNodes.size() > 6) {
+                        sixthLastNode = visitedNodes.get(visitedNodes.size() - 7);
+                    }
+
+                    if ((nextNodeId == lastNode) || (nextNodeId == secondLastNode) || (nextNodeId == thirdLastNode)
+                            || (nextNodeId == fourthLastNode) || (nextNodeId == fifthLastNode) || (nextNodeId == sixthLastNode)) {
                         System.out.println("NEIGHBOUR NEAREST THE ORB WAS RECENTLY VISITED. WE RULE IT OUT ");
                         nextNodeId = visitedNeighbours.get(1).getId();
                         // could also test if this was recently visited, but may not need to
-                    }else{
-                        System.out.println("NEIGHBOUR NEAREST THE ORB WAS RECENTLY VISITED, " +
-                                "BUT THERE ARE NO MORE NEIGHBOURS SO WE GO BACK TO IT ");
+                        move(nextNodeId, visitedNodes, state);
                     }
+                }else {
+                    System.out.println("NEIGHBOUR NEAREST THE ORB WAS RECENTLY VISITED, " +
+                            "BUT THERE ARE NO MORE NEIGHBOURS SO WE GO BACK TO IT ");
+                    move(nextNodeId, visitedNodes, state);
                 }
-                move(nextNodeId, visitedNodes, state);
                 // need an added part that identifies if it is stuck in a complex loop that will
                 //never finish, due to a long wall blocking the path. In this case, it can follow teh opposite rule
                 // ie it can actually take the furthest path from the orb, in order to get away from the wall.
