@@ -8,7 +8,7 @@ import java.util.Set;
 /**
  * An instance represents a node in the graph --the cavern.
  */
-public class Node {
+public class Node implements Comparable<Node> {
     /**
      * The least positive fresh identifier available
      */
@@ -120,5 +120,14 @@ public class Node {
     @Override
     public int hashCode() {
         return Objects.hash(id);
+    }
+
+    /**
+     * Return positive if this node's tile has more gold than the other node's tile, negative if less, 0 if same
+     * @param other node to compare tiles with
+     * @return compare value, a positive or negative integer or zero
+     */
+    public int compareTo(Node other){
+        return this.getTile().getGold() - other.getTile().getGold();
     }
 }
