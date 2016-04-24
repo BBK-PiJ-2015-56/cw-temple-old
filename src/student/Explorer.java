@@ -66,12 +66,12 @@ public class Explorer {
             //convert the new neighbours collection into a new list
             neighbours = new ArrayList<>(neighboursCollection);
             System.out.print("current node neighbours: ");
-            neighbours.forEach(node -> System.out.print("node id:" + node.getId()+ "..."));
+            neighbours.forEach(node -> System.out.print("node id:" + node.getId() + "..."));
             System.out.println();
 
             //take out any neighbours that are on the blacklist
-            for(int i = 0; i < neighbours.size(); i++){
-                if(blacklist.contains(neighbours.get(i).getId())){
+            for (int i = 0; i < neighbours.size(); i++) {
+                if (blacklist.contains(neighbours.get(i).getId())) {
                     neighbours.remove(i);
                 }
             }
@@ -80,7 +80,7 @@ public class Explorer {
             System.out.println();
             //sort the list
             Collections.sort(neighbours);
-            System.out.println("available neighbours, sorted: ");
+            System.out.print("available neighbours, sorted: ");
             neighbours.forEach(node -> System.out.print("node id:" + node.getId() + "..."));
 
             //set the visited and unvisited neighbours lists to empty
@@ -105,6 +105,7 @@ public class Explorer {
             if (unvisitedNeighbours.size() > 0) {
                 System.out.println("There is an unvisited neighbour. We move to the one nearest the orb");
                 nextNodeId = unvisitedNeighbours.get(0).getId();
+                move(nextNodeId, visitedNodes, state);
             } else {
                 System.out.println("All neighbours are visited. We move to the visited neighbour nearest to the orb");
                 nextNodeId = visitedNeighbours.get(0).getId();
@@ -129,78 +130,51 @@ public class Explorer {
                     if (nextNodeId == visitedNodes.get(visitedNodes.size() - 2)) {
                         if (visitedNeighbours.size() > 1) {
                             Collections.shuffle(visitedNeighbours);
-                            nextNodeId = visitedNeighbours.get(0).getId(); //ERROR
+                            nextNodeId = visitedNeighbours.get(0).getId();
                         }
                     }
                 }
-
-            }
-            //check if it is stuck in a loop of 3 or more squares
-            if(stuckInLoop(visitedNodes)){
-                System.out.println("STUCK IN LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                //add last 3 nodes to blacklist
-                for(int j = 1; j < 3; j++) {
-                    if (!visitedNeighbours.isEmpty()) {
-                        //add last element of visited nodes to blacklist
-                        blacklist.add(visitedNodes.get(visitedNodes.size() - 1));
-                        System.out.print("node added to blacklist...");
-                    }
+                //check if it is stuck in a loop of 3 or more squares. if 0, then no loop
+                int sizeOfLoop = stuckInLoop(visitedNodes, blacklist, state);
+                if (sizeOfLoop > 0) {
+                        System.out.println("STUCK IN LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                        System.out.println("We have moved back to the end of the loop and blacklisted it");
+                        // make 8 moves away from Orb and then 4 at random
+                        //System.out.println(" Need to move away...");
+                        //moveAwayFromOrb(state, visitedNodes, 7);
+                        //moveAtRandom(state, visitedNodes, 15);
+                } else {
+                        move(nextNodeId, visitedNodes, state);
                 }
-                System.out.println();
-                // make 8 moves away from Orb and then 4 at random
-                System.out.println(" Need to move away...");
-                moveAwayFromOrb(state, visitedNodes, 7);
-                moveAtRandom(state, visitedNodes, 15);
-            }else {
-                move(nextNodeId, visitedNodes, state);
             }
         }
     }
-    // a method to check if george is repeating his moves in a loop
-    private Boolean stuckInLoop(List<Long> visitedNodes){
-        Boolean stuckInLoop = false;
-        Boolean currentIdRepeat = false;
-        Boolean lastIdRepeat = false;
-        Boolean secondLastIdRepeat = false;
-
-        // check if currentId has previously been visited
-        if (visitedNodes.size() > 1) {
-            long currentId = visitedNodes.get(visitedNodes.size()-1);
-            for (int i = 0; i < visitedNodes.size() - 2; i++) {
-                if (currentId == visitedNodes.get(i))
-                    currentIdRepeat = true;
-            }
-        }
-        // check if lastId was previously visited
-        if (visitedNodes.size() > 2) {
-            long lastId = visitedNodes.get(visitedNodes.size()-2);
-            for(int i = 0 ; i < visitedNodes.size()-3; i++ ){
-                if(lastId == visitedNodes.get(i))
-                    lastIdRepeat = true;
-            }
-        }
-        // check if secondLastId was previously visited
-        if (visitedNodes.size() > 3) {
-            long lastId = visitedNodes.get(visitedNodes.size()-3);
-            for(int i = 0 ; i < visitedNodes.size()-4; i++ ){
-                if(lastId == visitedNodes.get(i))
-                    secondLastIdRepeat = true;
-            }
-        }
-
-
-        //If all three nodes have been previously visited, we must be in a loop
-        if(currentIdRepeat){
-            if(lastIdRepeat){
-                if(secondLastIdRepeat){
-                    stuckInLoop = true;
+    // a method to check if george is stuck, and also adds to blacklist if so
+    private int stuckInLoop(List<Long> visitedNodes, List<Long> blacklist, ExplorationState state){
+        int sizeOfLoop = 0;
+        int count = visitedNodes.size()-2;
+        Boolean countNodeIsInLoop = true;
+        while(countNodeIsInLoop && (count > 0)){
+            long tempId = visitedNodes.get(count);
+            //assume no loop
+            countNodeIsInLoop = false;
+            //for each visited node before this node
+            for(int i = 0; i < count; i++){
+                if(visitedNodes.get(i) == tempId) {
+                    //this node has been visited more than once
+                    countNodeIsInLoop = true;
+                    //move one step back along this loop, then blacklist that step
+                    move(tempId, visitedNodes, state);
+                    blacklist.add(tempId);
+                    System.out.print("node added to blacklist...");
                 }
-
             }
+            System.out.println();
+            count--;
+            sizeOfLoop++;
         }
-        return stuckInLoop;
+        return sizeOfLoop;
     }
-
     // a method to move to a neighbour, updating visited nodes when move is made
     private void move(long nextNode, List<Long> visitedNodes, ExplorationState state){
         long nextNodeId;
