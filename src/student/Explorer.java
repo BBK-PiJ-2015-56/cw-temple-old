@@ -294,39 +294,19 @@ public class Explorer {
             // check if this dst is shorter than current best estimate for neighbour
             if (newPathDst < shortestDst.get(neighbour)) {
                 System.out.println(" Updating path for " + neighbour.getId() + "...");
-                Node previousTopNode;
-                //path for this neighbour, before updating
-                List<Node> pathOfNeighbour = paths.get(neighbour);
-                System.out.print(" Neighbour path: [");
-                for(int i = 0; i < pathOfNeighbour.size(); i++){
-                    System.out.print(pathOfNeighbour.get(i).getId());
-                }
-                System.out.println("]");
-
                 //get the path of current node
                 List<Node> pathOfCurrent = paths.get(current);
-                System.out.print(" Current path: [");
+                // create a new path
+                List<Node> newPathForNeighbour = new ArrayList<>();
+                newPathForNeighbour.add(neighbour);
                 for(int i = 0; i < pathOfCurrent.size(); i++){
-                    System.out.print(pathOfCurrent.get(i).getId() + ", ");
+                    newPathForNeighbour.add(pathOfCurrent.get(i));
                 }
-                System.out.println("]");
-                System.out.println("There are " + pathOfCurrent.size() + " nodes to add.");
-                System.out.println(" CHECK!!! NEW PATH SIZE SHOULD BE " + (pathOfCurrent.size() + pathOfNeighbour.size()) );
 
-                //add all nodes from current node's path into neighbour's path
-                for(int i = 0; i < pathOfCurrent.size(); i++){
-                    System.out.print("adding " + pathOfCurrent.get(i).getId() + " to path...");
-                    pathOfNeighbour.add(pathOfCurrent.get(i));
-                }
-                System.out.println();
-                System.out.println("Amended path for " + neighbour.getId() + " to: [");
-                for(int i = 0; i < pathOfNeighbour.size(); i++){
-                    System.out.print(pathOfNeighbour.get(i).getId() + ", ");
-                }
-                System.out.println("]");
                 //replace the path of neighbour in paths
-                paths.replace(neighbour, pathOfNeighbour);
+                paths.replace(neighbour, newPathForNeighbour);
                 System.out.print("...UPDATE COMPLETE- ");
+                System.out.println(" CHECK!!! NEW PATH SHOULD BE " + ((paths.get(current).size())+1));
                 System.out.println(" CHECK!!! NEW PATH SIZE IS " + (paths.get(neighbour).size()));
 
                 //update the shortest distance
