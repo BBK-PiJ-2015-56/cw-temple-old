@@ -409,6 +409,7 @@ public class Explorer {
                     // print the path for each node in the path
                 }
                 state.moveTo(journeyNodes.get(i));
+                //PICK UP GOLD IF THERE IS GOLD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 System.out.println();
             }
         }
