@@ -169,8 +169,10 @@ public class Explorer {
         Map<Node, Integer> goldNodeValues = new HashMap<>();
         List<Node> goldNodes = new ArrayList<>();
         List<Node> topGoldNodes = new ArrayList<>();
-        Map<Node, Map<Node, Integer>> dstGoldsToNodes = new HashMap<>();
-        Map<Node, Map<Node, List<Node>>> pathsGoldsToNodes = new HashMap<>();
+        //HashMap<Node, Integer> dstGoldToNodes = new HashMap<Node, Integer>();
+        HashMap<Node, HashMap<Node, Integer>> dstGoldsToNodes = new HashMap<Node, HashMap<Node, Integer>>();
+        //HashMap<Node, List<Node>> pathsGoldToNodes = new HashMap<Node,ArrayList<Node>>();
+        HashMap<Node, Map<Node, List<Node>>> pathsGoldsToNodes = new HashMap<>();
         long goldNodesRequired;
         System.out.println("STARTING ESCAPE: start node:" + state.getCurrentNode().getId() + "  exit node:" +
                 state.getExit().getId() + "  nr of nodes:" + nodes.size()
@@ -206,8 +208,8 @@ public class Explorer {
         //calculate the shortestPaths and Distances from all topGolds to all nodes
         System.out.println();
         System.out.println("NOW CALC THE SHORTEST PATHS AND DST FROM ALL GOLDS TO OTHER NODES");
-        Map<Node, Integer> dstToNodes;
-        Map<Node, List<Node>> pathsToNodes;
+        Map<Node, Integer> dstToNodes = new HashMap<Node, Integer>();
+        Map<Node, List<Node>> pathsToNodes =  new HashMap<Node, List<Node>>();
         for (int i = 0; i < topGoldNodes.size(); i++) {
             Node tempNode = topGoldNodes.get(i);
             System.out.println();
@@ -225,7 +227,28 @@ public class Explorer {
         }
         System.out.println("ALL GOLD PATHS CALCULATED...");
         System.out.println();
-
+        /*
+        System.out.println("RETRIEVAL TESTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        System.out.println("getting the dst for a random gold to the exit");
+        Node testNode = topGoldNodes.get(3);
+        System.out.println("The size of the map dstGoldsToNodes is " + dstGoldsToNodes.size());
+        System.out.println("here is the map of nodes, along with the dst to each other node");
+        System.out.println("[ ");
+        //for each goldNode
+        for(int i = 0; i < dstGoldsToNodes.size(); i++) {
+            Node tempGoldNode = topGoldNodes.get(i);
+            Map<Node, Integer> tempMap = dstGoldsToNodes.get(tempGoldNode);
+            System.out.println("Distances from " + tempGoldNode.getId() + " are:");
+            System.out.println("Is dst map empty? " + tempMap.isEmpty());
+            /*System.out.println("[ ");
+            for (int j = 0; j < tempMap.size(); j++) {
+                System.out.println("  (node:" + topGoldNodes.get(j)
+                        + ", dst:" + tempMap.get(topGoldNodes.get(j)) + ")  ");
+            }
+        }
+        System.out.println(" ]");
+        System.out.println("END OF TESTING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+        */
 
         System.out.println("NOW CALC THE SHORTEST PATHS AND DST FROM START TO OTHER NODES");
         //calculate the shortestPaths and Distances from start to all nodes
@@ -233,7 +256,7 @@ public class Explorer {
 
         Node start = state.getCurrentNode();
         System.out.println("CALLING METHOD: initDstToNodes for start........................");
-        Map<Node, Integer> dstStartToNodes = initDstToNodes(start, nodes);
+        HashMap<Node, Integer> dstStartToNodes = initDstToNodes(start, nodes);
         System.out.println("Here are the nodes and their dst from the start");
         System.out.print("[ ");
         nodes.forEach(node ->
@@ -260,8 +283,8 @@ public class Explorer {
                 makeJourney(state, pathsGoldsToNodes.get(currentNode).get(nextMove), pathsGoldsToNodes.get(currentNode) );
         }
     }
-    private Node calcBestMove(Node currentPos, int timeRemaining, Map<Node, Map<Node, Integer>> dstGoldsToNodes,
-                              List<Node> topGoldNodes, Map<Node, Integer> dstStartToNodes, EscapeState state){
+    private Node calcBestMove(Node currentPos, int timeRemaining, HashMap<Node, HashMap<Node, Integer>> dstGoldsToNodes,
+                              List<Node> topGoldNodes, HashMap<Node, Integer> dstStartToNodes, EscapeState state){
         System.out.println();
         System.out.println("calculating best move...");
         Node bestMove;
@@ -331,10 +354,10 @@ public class Explorer {
     }
 
     //A method to init the Map of shortest distances from the start to every node
-    private Map<Node, Integer> initDstToNodes(Node start, List<Node> nodes){
+    private HashMap<Node, Integer> initDstToNodes(Node start, List<Node> nodes){
         System.out.println();
         System.out.println("initialising map of distances from " + start.getId() + "...");
-        Map<Node, Integer> dstToNodes = new HashMap<>();
+        HashMap<Node, Integer> dstToNodes = new HashMap<>();
         nodes.forEach(node -> dstToNodes.put(node , 100000));
         dstToNodes.replace(start, 0);
         return dstToNodes;
