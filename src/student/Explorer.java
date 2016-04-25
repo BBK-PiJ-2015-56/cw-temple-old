@@ -214,7 +214,7 @@ public class Explorer {
         //declare the variables we will be using to help us make our moves
         Node start = state.getCurrentNode();
         Map<Node, Integer> dstStartToNodes = initDstToNodes(start, nodes);
-        Map<Node, List<Node>> pathsStartToNodes = findPathsToNodes(topGoldNodes.get(i), nodes, dstStartToNodes);
+        Map<Node, List<Node>> pathsStartToNodes = findPathsToNodes(start, nodes, dstStartToNodes);
 
         // start our loop to plan and make next move, which we do until we get to exit
         while (state.getCurrentNode() != state.getExit()) {
@@ -250,6 +250,8 @@ public class Explorer {
                 //current must be start
                 dstFromCurrent = dstStartToNodes.get(tempNode);
             }else{
+                //NPE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //AFTER ALL NODES WERE OPTIMIZED
                 dstFromCurrent = dstGoldsToNodes.get(currentPos).get(tempNode);
             }
             //get dstFromExit for this Node
@@ -283,6 +285,7 @@ public class Explorer {
         Map<Node, Integer> dstToNodes = new HashMap<>();
         nodes.forEach(node -> dstToNodes.put(node , 100000));
         dstToNodes.replace(start, 0);
+        return dstToNodes;
     }
 
     // A method to that calcs and returns the shortest paths from any start node to every node in nodes
