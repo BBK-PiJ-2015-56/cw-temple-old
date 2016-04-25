@@ -170,65 +170,100 @@ public class Explorer {
         List<Node> goldNodes = new ArrayList<>();
         List<Node> topGoldNodes = new ArrayList<>();
         Map<Node, Map<Node, Integer>> dstGoldsToNodes = new HashMap<>();
-        Map<Node, List<Node>> pathsGoldsToNodes = new HashMap<>();
+        Map<Node, Map<Node, List<Node>>> pathsGoldsToNodes = new HashMap<>();
         long goldNodesRequired;
+        System.out.println("STARTING ESCAPE: start node:" + state.getCurrentNode().getId() + "  exit node:" +
+                state.getExit().getId() + "  nr of nodes:" + nodes.size()
+                + "  time remaining:" + state.getTimeRemaining());
 
         // fill in the gold list and map
         Double totalGold = 0.0;
+        System.out.print("All Golds:[ ");
         for (int i = 0; i < nodes.size(); i++) {
             if (nodes.get(i).getTile().getGold() != 0) {
                 goldNodeValues.put(nodes.get(i), nodes.get(i).getTile().getGold());
                 goldNodes.add(nodes.get(i));
                 totalGold += nodes.get(i).getTile().getGold();
+                System.out.print("  (node:" + nodes.get(i).getId()
+                        + ", gold:" + nodes.get(i).getTile().getGold() + ")  ");
             }
         }
+        System.out.println("]");
         // avgGold includes the tiles with no gold
         Double avgGold = totalGold / nodes.size();
 
         //sort the gold tiles into descending order and get top ten percent of nodes
-        Collections.sort(goldNodes);
-        goldNodesRequired = Math.round(0.9 * goldNodes.size());
+        Collections.sort(goldNodes); // not sorting it properly!!!
+        goldNodesRequired = Math.round(0.25 * goldNodes.size());
         System.out.print("There are " + goldNodes.size() + " gold nodes.  ");
         System.out.println("We have narrowed it down to " + goldNodesRequired + " gold nodes.");
         for (int i = 0; i < goldNodesRequired; i++) {
             topGoldNodes.add(goldNodes.get(i));
+            System.out.print(" (node:" + goldNodes.get(i).getId()
+                    + ", gold:" + goldNodes.get(i).getTile().getGold() + ") ");
         }
-        System.out.print("Top ten per cent golds in descending order: ");
-        goldNodes.forEach(node ->
-                System.out.print(" (node:" + node.getId() + ", gold:" + node.getTile().getGold() + ") "));
-        System.out.println();
 
         //calculate the shortestPaths and Distances from all topGolds to all nodes
+        System.out.println();
+        System.out.println("NOW CALC THE SHORTEST PATHS AND DST FROM ALL GOLDS TO OTHER NODES");
         Map<Node, Integer> dstToNodes;
         Map<Node, List<Node>> pathsToNodes;
         for (int i = 0; i < topGoldNodes.size(); i++) {
-            dstToNodes = initDstToNodes(topGoldNodes.get(i), nodes);
-            pathsToNodes = findPathsToNodes(topGoldNodes.get(i), nodes, dstToNodes);
-            //update the map that stores all the distances from the golds to the exit
-            dstGoldsToNodes.put(topGoldNodes.get(i), dstGoldsToNodes.get(state.getExit()));
-            //update the map that stores the shortest path from each gold to exit
-            pathsGoldsToNodes.put(topGoldNodes.get(i), pathsToNodes.get(state.getExit()));
+            Node tempNode = topGoldNodes.get(i);
+            System.out.println();
+            System.out.println();
+            System.out.println("CALC PATHS/DST FOR GOLD NODE:" + tempNode.getId() );
+            dstToNodes = initDstToNodes(tempNode, nodes);
+            pathsToNodes = findPathsToNodes(tempNode, nodes, dstToNodes);
+            //update the map that stores all the distances from all golds to all other nodes
+            dstGoldsToNodes.put(tempNode, dstGoldsToNodes.get(state.getExit()));
+            //update the map that stores the shortest path from each gold to all other nodes
+            pathsGoldsToNodes.put(tempNode, pathsToNodes);
+            System.out.println("FINISHED PATHS/DST FOR GOLD NODE:" + tempNode.getId() );
+            System.out.println();
+            System.out.println();
         }
+        System.out.println("ALL GOLD PATHS CALCULATED...");
+        System.out.println();
 
+
+        System.out.println("NOW CALC THE SHORTEST PATHS AND DST FROM START TO OTHER NODES");
         //calculate the shortestPaths and Distances from start to all nodes
         //declare the variables we will be using to help us make our moves
+
         Node start = state.getCurrentNode();
+        System.out.println("CALLING METHOD: initDstToNodes for start........................");
         Map<Node, Integer> dstStartToNodes = initDstToNodes(start, nodes);
+        System.out.println("Here are the nodes and their dst from the start");
+        System.out.print("[ ");
+        nodes.forEach(node ->
+                System.out.print("(node: " + node.getId() + ", " + "dst:" + dstStartToNodes.get(node) + ") "));
+        System.out.println("]");
+        System.out.println("CALLING METHOD: findPathsToNodes for start");
         Map<Node, List<Node>> pathsStartToNodes = findPathsToNodes(start, nodes, dstStartToNodes);
+        System.out.println("ALL PATHS FROM START CALCULATED");
 
         // start our loop to plan and make next move, which we do until we get to exit
+        System.out.println(" STARTING OUR ESCAPE JOURNEY FROM START.............................");
         while (state.getCurrentNode() != state.getExit()) {
+            Node currentNode = state.getCurrentNode();
+            System.out.println("Still not at exit - we are at " + currentNode.getId() + " need to move again..");
             //we are not at exit yet - find the best move
             Node nextMove = calcBestMove(state.getCurrentNode(), state.getTimeRemaining(),
                     dstGoldsToNodes, topGoldNodes, dstStartToNodes, state);
-            if(state.getCurrentNode() == start)
-                makeJourney(state, pathsStartToNodes.get(nextMove), pathsStartToNodes );
-            else
-                makeJourney(state, pathsGoldsToNodes.get(nextMove), pathsGoldsToNodes );
+            System.out.println("Best move is to node " + nextMove.getId()
+                    + " with " + nextMove.getTile().getGold() + " golds.");
+            if(state.getCurrentNode() == start) {
+                System.out.println("About to make first journey...");
+                makeJourney(state, pathsStartToNodes.get(nextMove), pathsStartToNodes);
+            }else
+                makeJourney(state, pathsGoldsToNodes.get(currentNode).get(nextMove), pathsGoldsToNodes.get(currentNode) );
         }
     }
     private Node calcBestMove(Node currentPos, int timeRemaining, Map<Node, Map<Node, Integer>> dstGoldsToNodes,
                               List<Node> topGoldNodes, Map<Node, Integer> dstStartToNodes, EscapeState state){
+        System.out.println();
+        System.out.println("calculating best move...");
         Node bestMove;
         Map<Node,Double> nodeValues = new HashMap<>();
         //constants to add weighting to three factors in deciding nextMove
@@ -241,22 +276,37 @@ public class Explorer {
         int dstFromExit;
         Double nodeValue;
 
+        // for each gold node, we get nodeValue and put in map nodeValues
         for(int i = 0; i < topGoldNodes.size(); i++) {
             tempNode = topGoldNodes.get(i);
+            System.out.println("getting nodeValue for node " + i + " which is " + tempNode.getId());
+
             //get gold for this node
+            System.out.print("getting gold........ ");
             gold = tempNode.getTile().getGold();
+            System.out.println("node " + tempNode.getId() + " has gold: " + gold);
+
             //get dstFromCurrent for this node
+            System.out.println("getting dstFromCurrent........");
             if(!(topGoldNodes.contains(currentPos))){
+                System.out.println("we are at start - need to use dstStartToNodes Map for dst to temp Node");
                 //current must be start
+                //NPE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                //AFTER ALL NODES WERE OPTIMIZED
                 dstFromCurrent = dstStartToNodes.get(tempNode);
             }else{
+                System.out.println("we are at a gold - need to use dstGoldsToNodes Map for dst to tempNode");
                 //NPE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 //AFTER ALL NODES WERE OPTIMIZED
                 dstFromCurrent = dstGoldsToNodes.get(currentPos).get(tempNode);
             }
+
             //get dstFromExit for this Node
-            dstFromExit = dstGoldsToNodes.get(tempNode).get(state.getExit());
+            System.out.println("getting dstFromExit........");
+            dstFromExit = dstGoldsToNodes.get(tempNode).get(state.getExit());//NPE
+            System.out.println();
             //get NodeValue
+            System.out.println("calculating nodeValue for " + tempNode);
             if(topGoldNodes.get(i).getTile().getGold() == 0) {
                 //node already been visited
                 nodeValue = 0.0;
@@ -282,15 +332,19 @@ public class Explorer {
 
     //A method to init the Map of shortest distances from the start to every node
     private Map<Node, Integer> initDstToNodes(Node start, List<Node> nodes){
+        System.out.println();
+        System.out.println("initialising map of distances from " + start.getId() + "...");
         Map<Node, Integer> dstToNodes = new HashMap<>();
         nodes.forEach(node -> dstToNodes.put(node , 100000));
         dstToNodes.replace(start, 0);
         return dstToNodes;
     }
 
-    // A method to that calcs and returns the shortest paths from any start node to every node in nodes
+    // A method that calcs and returns the shortest paths from any start node to every node in nodes
     //It also updates the map(nodes, dstToNodes) from this start node
     private Map<Node, List<Node>> findPathsToNodes(Node start, List<Node> nodes, Map<Node, Integer> dstToNodes) {
+        System.out.println();
+        System.out.println("finding paths from " + start.getId() + " to all nodes...");
         //create the Map of stacks(ie paths) and set each path to contain it's own node
         Map<Node, List<Node>> pathsToNodes = new HashMap<>();
         for (int i = 0; i < nodes.size(); i++) {
@@ -300,7 +354,10 @@ public class Explorer {
         }
 
         //A List of all Nodes for which we don't know shortest dst - all of them to begin with
-        List<Node> unopt = nodes;
+        List<Node> unopt = new ArrayList<>();
+        for(int i = 0; i < nodes.size(); i++){
+            unopt.add(nodes.get(i));
+        }
         //A List of all nodes for which we do know shortest dst
         List<Node> opt = new ArrayList<>();
 
@@ -316,14 +373,14 @@ public class Explorer {
                 // get another node to optimize - this is 'start' the first time
                 currentOptNode = getNextNode(unopt, dstToNodes);
 
-                System.out.println("next node for opt: " + currentOptNode.getId());
+                System.out.print("next node for opt: " + currentOptNode.getId() + "...");
 
                 //take this node out of unoptimized and put into optimized
                 opt.add(currentOptNode);
                 unopt.remove(currentOptNode);
-                System.out.print("nodes in opt: [ ");
-                opt.forEach(node -> System.out.print(node.getId() + ", "));
-                System.out.println(" ]");
+                //System.out.print("opt updated to: [ ");
+                //opt.forEach(node -> System.out.print(node.getId() + ", "));
+                //System.out.println(" ]");
 
                 //update the neighbours
                 neighboursSet = currentOptNode.getNeighbours();
@@ -337,7 +394,8 @@ public class Explorer {
                 // update the shortestDst estimates and paths for these neighbours
                 updateMaps(currentOptNode, unoptNeighbours, dstToNodes, pathsToNodes);
         }
-        System.out.println("All node paths from " + start.getId() + " are optimized");
+        System.out.print("All node paths from " + start.getId() + " are optimized...");
+        System.out.println("CHECK: opt size should be:" + nodes.size() +"..opt size is:" + opt.size());
         return pathsToNodes;
     }
 
@@ -361,6 +419,8 @@ public class Explorer {
     private void updateMaps(Node current, List<Node> neighbours, Map<Node,Integer> shortestDst,
                             Map<Node,List<Node>> paths){
         System.out.println("Updating maps (if shorter) for neighbours....");
+        if(neighbours.isEmpty())
+            System.out.println("all neighbours are fully optimized already.");
         neighbours.forEach(neighbour -> {
             //sum the dst from start to current with dst from current to this neighbour
             int newPathDst = shortestDst.get(current) + current.getEdge(neighbour).length();
@@ -396,8 +456,8 @@ public class Explorer {
     }
 
     private void makeJourney(EscapeState state, List<Node> journeyNodes, Map<Node, List<Node>> pathsForAllNodes) {
-        System.out.println("Our journey starting position is " + state.getCurrentNode().getId());
-        System.out.print("The journey path list is [ ");
+        System.out.print("journey start pos:" + state.getCurrentNode().getId());
+        System.out.print("...journey path list: [ ");
         for(int i = 0; i < journeyNodes.size(); i++){
             System.out.print((journeyNodes.get(i).getId()) + ", ");
         }
@@ -437,9 +497,10 @@ public class Explorer {
                     System.out.println(" ]");
                     // print the path for each node in the path
                 }
+                System.out.print("....moving to " + journeyNodes.get(i).getId());
                 state.moveTo(journeyNodes.get(i));
                 if(state.getCurrentNode().getTile().getGold() > 0){
-                    System.out.println("Picking up Gold!!!");
+                    System.out.println("..Picking up Gold!!!");
                     state.pickUpGold();
                 }
                 System.out.println();
