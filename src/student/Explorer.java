@@ -164,19 +164,19 @@ public class Explorer {
     public void escape(EscapeState state) {
         //TODO: Escape from the cavern before time runs out
         //A List of all Nodes
-        Collection<Node> nodesCollection= state.getVertices();
+        Collection<Node> nodesCollection = state.getVertices();
         List<Node> nodes = new ArrayList<>(nodesCollection);
-        Map<Node, Integer > goldNodeValues = new HashMap<>();
+        Map<Node, Integer> goldNodeValues = new HashMap<>();
         List<Node> goldNodes = new ArrayList<>();
         List<Node> topGoldNodes = new ArrayList<>();
-        Map<Node, Integer> goldsToExitDst = new HashMap<>();
-        Map<Node,List<Node>> goldsToExitPaths = new HashMap<>();
+        Map<Node, Map<Node, Integer>> dstGoldsToNodes = new HashMap<>();
+        Map<Node, List<Node>> pathsGoldsToNodes = new HashMap<>();
         long goldNodesRequired;
 
         // fill in the gold list and map
         Double totalGold = 0.0;
-        for(int i = 0; i < nodes.size(); i++){
-            if(nodes.get(i).getTile().getGold() != 0){
+        for (int i = 0; i < nodes.size(); i++) {
+            if (nodes.get(i).getTile().getGold() != 0) {
                 goldNodeValues.put(nodes.get(i), nodes.get(i).getTile().getGold());
                 goldNodes.add(nodes.get(i));
                 totalGold += nodes.get(i).getTile().getGold();
@@ -190,77 +190,101 @@ public class Explorer {
         goldNodesRequired = Math.round(0.9 * goldNodes.size());
         System.out.print("There are " + goldNodes.size() + " gold nodes.  ");
         System.out.println("We have narrowed it down to " + goldNodesRequired + " gold nodes.");
-        for(int i = 0; i < goldNodesRequired; i++){
+        for (int i = 0; i < goldNodesRequired; i++) {
             topGoldNodes.add(goldNodes.get(i));
         }
         System.out.print("Top ten per cent golds in descending order: ");
         goldNodes.forEach(node ->
-                System.out.print(" (node:" + node.getId() + ", gold:" +  node.getTile().getGold() + ") "));
+                System.out.print(" (node:" + node.getId() + ", gold:" + node.getTile().getGold() + ") "));
         System.out.println();
 
-        //calculate the shortestPaths and Distances for topGolds to the exit
-        //we will use the distances to help us decide each next Move so we dont run out of steps
-        // we will use the paths when we need to go to exit from the gold we are at
-        // NOTE I CAN SAVE PROCESSING TIME BY USING THE SEP METHOD THAT STOPS ONCE EXIT OPTIMIZED
-        for(int i = 0; i < topGoldNodes.size(); i++ ){
-            Map<Node, Integer> dstGoldsToNodes = initDstToNodes(topGoldNodes.get(i), nodes);
-            Map<Node, List<Node>> pathsToNodes = findPathsToNodes(topGoldNodes.get(i), nodes, dstGoldsToNodes);
-            //update the map that stores all the distances from the golds to the exit
-            goldsToExitDst.put(topGoldNodes.get(i), dstGoldsToNodes.get(state.getExit()));
-            //update the map that stores the shortest path from each gold to exit
-            goldsToExitPaths.put(topGoldNodes.get(i), pathsToNodes.get(state.getExit()));
-        }
-
-        //declare the variables we will be using to help us make our moves
-        Node currentPos;
+        //calculate the shortestPaths and Distances from all topGolds to all nodes
         Map<Node, Integer> dstToNodes;
-        // start our loop to plan and make next move, which we do until we get to exit
-        Map<Node, Double> moveValues;
-        while(state.getCurrentNode() != state.getCurrentNode()){
-            currentPos = state.getCurrentNode();
-
-            //set the dstToNodes to 100,000, except currentPos to 0
-            dstToNodes =  initDstToNodes(currentPos, nodes);
-
-            //A Map of paths from currentPos to each node
-            Map<Node, List<Node>> pathsToNodes = findPathsToNodes(currentPos, nodes, dstToNodes);
-
-            // We now have the shortestDst and corr paths from currentPos to all topGolds and to Exit
-            // Now find the best move to make, and make it
-            Node nextMove = calcBestMove(currentPos, dstToNodes, topGoldNodes, goldNodeValues, goldsToExitDst);
-            //makeJourney(state, ....);
+        Map<Node, List<Node>> pathsToNodes;
+        for (int i = 0; i < topGoldNodes.size(); i++) {
+            dstToNodes = initDstToNodes(topGoldNodes.get(i), nodes);
+            pathsToNodes = findPathsToNodes(topGoldNodes.get(i), nodes, dstToNodes);
+            //update the map that stores all the distances from the golds to the exit
+            dstGoldsToNodes.put(topGoldNodes.get(i), dstGoldsToNodes.get(state.getExit()));
+            //update the map that stores the shortest path from each gold to exit
+            pathsGoldsToNodes.put(topGoldNodes.get(i), pathsToNodes.get(state.getExit()));
         }
-        //private nodecalcBestMove(Node currentPos, dstToNodes, topGoldNodes, goldNodeValues, goldsToExitDst){
-        //
-       // }
 
-        //method to get the shortest paths from a starting point, start, to all nodes
-
-        // the node that we are starting from and going to
+        //calculate the shortestPaths and Distances from start to all nodes
+        //declare the variables we will be using to help us make our moves
         Node start = state.getCurrentNode();
-        Long startId = state.getCurrentNode().getId();
-        Node exit = state.getExit();
-        Long exitId = state.getExit().getId();
-        System.out.println("starting escape...start nodeId is " + startId + "...exit nodeId is " + exitId);
-        System.out.println("time left:" + state.getTimeRemaining() + "  nr of Nodes:" + state.getVertices().size());
+        Map<Node, Integer> dstStartToNodes = initDstToNodes(start, nodes);
+        Map<Node, List<Node>> pathsStartToNodes = findPathsToNodes(topGoldNodes.get(i), nodes, dstStartToNodes);
 
-        //A Map of shortest distances from the start to every node, set to 100,000, start set to 0
-        Map<Node, Integer> dstToNodes = new HashMap<>();
-        nodes.forEach(node -> dstToNodes.put(node , 100000));
-        dstToNodes.replace(start, 0);
-
-        //A Map of ordered predecessors for each node in it's path from start
-        Map<Node, List<Node>> pathsToNodes = findPathsToNodes(start, nodes, dstToNodes);
-
-        //Make the journey from the start to the exit, along the shortest path
-        makeJourney(state, pathsToNodes.get(exit), pathsToNodes);
+        // start our loop to plan and make next move, which we do until we get to exit
+        while (state.getCurrentNode() != state.getExit()) {
+            //we are not at exit yet - find the best move
+            Node nextMove = calcBestMove(state.getCurrentNode(), state.getTimeRemaining(),
+                    dstGoldsToNodes, topGoldNodes, dstStartToNodes, state);
+            if(state.getCurrentNode() == start)
+                makeJourney(state, pathsStartToNodes.get(nextMove), pathsStartToNodes );
+            else
+                makeJourney(state, pathsGoldsToNodes.get(nextMove), pathsGoldsToNodes );
+        }
     }
+    private Node calcBestMove(Node currentPos, int timeRemaining, Map<Node, Map<Node, Integer>> dstGoldsToNodes,
+                              List<Node> topGoldNodes, Map<Node, Integer> dstStartToNodes, EscapeState state){
+        Node bestMove;
+        Map<Node,Double> nodeValues = new HashMap<>();
+        //constants to add weighting to three factors in deciding nextMove
+        Double kGold = 1.0;
+        Double kDstFromCurrent = 1.0;
+        Double kDstFromExit = 1.0;
+        Node tempNode;
+        int gold;
+        int dstFromCurrent;
+        int dstFromExit;
+        Double nodeValue;
+
+        for(int i = 0; i < topGoldNodes.size(); i++) {
+            tempNode = topGoldNodes.get(i);
+            //get gold for this node
+            gold = tempNode.getTile().getGold();
+            //get dstFromCurrent for this node
+            if(!(topGoldNodes.contains(currentPos))){
+                //current must be start
+                dstFromCurrent = dstStartToNodes.get(tempNode);
+            }else{
+                dstFromCurrent = dstGoldsToNodes.get(currentPos).get(tempNode);
+            }
+            //get dstFromExit for this Node
+            dstFromExit = dstGoldsToNodes.get(tempNode).get(state.getExit());
+            //get NodeValue
+            if(topGoldNodes.get(i).getTile().getGold() == 0) {
+                //node already been visited
+                nodeValue = 0.0;
+            } else if(dstFromCurrent  + dstFromExit > timeRemaining) {
+                    //node too far away from exit
+                    nodeValue = 0.0;
+            } else{
+                    nodeValue = (kGold * gold)/(kDstFromCurrent * dstFromCurrent + kDstFromExit * dstFromExit);
+            }
+            nodeValues.put(tempNode, nodeValue);
+        }
+        System.out.print("Here are the nodes and their move values: ");
+        bestMove = state.getExit();
+        for(int i = 0; i < nodeValues.size(); i++){
+            System.out.print(" (node:" + topGoldNodes.get(i).getId()
+                    + ", value:" + nodeValues.get(topGoldNodes.get(i)) + ") ");
+            if(nodeValues.get(topGoldNodes.get(i)) > nodeValues.get(bestMove))
+                bestMove = topGoldNodes.get(i);
+        }
+        System.out.println();
+        return bestMove;
+    }
+
     //A method to init the Map of shortest distances from the start to every node
     private Map<Node, Integer> initDstToNodes(Node start, List<Node> nodes){
         Map<Node, Integer> dstToNodes = new HashMap<>();
         nodes.forEach(node -> dstToNodes.put(node , 100000));
         dstToNodes.replace(start, 0);
     }
+
     // A method to that calcs and returns the shortest paths from any start node to every node in nodes
     //It also updates the map(nodes, dstToNodes) from this start node
     private Map<Node, List<Node>> findPathsToNodes(Node start, List<Node> nodes, Map<Node, Integer> dstToNodes) {
@@ -328,6 +352,7 @@ public class Explorer {
         }
         return nextNode;
     }
+
     // This adds the currentOptNode to the paths for all unoptNeighbours if it makes a shorter route
     // It also adds the nodes in the predecessor nodes recursively all the way back to the start
     private void updateMaps(Node current, List<Node> neighbours, Map<Node,Integer> shortestDst,
@@ -366,6 +391,7 @@ public class Explorer {
             }
         });
     }
+
     private void makeJourney(EscapeState state, List<Node> journeyNodes, Map<Node, List<Node>> pathsForAllNodes) {
         System.out.println("Our journey starting position is " + state.getCurrentNode().getId());
         System.out.print("The journey path list is [ ");
@@ -409,7 +435,10 @@ public class Explorer {
                     // print the path for each node in the path
                 }
                 state.moveTo(journeyNodes.get(i));
-                //PICK UP GOLD IF THERE IS GOLD!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                if(state.getCurrentNode().getTile().getGold() > 0){
+                    System.out.println("Picking up Gold!!!");
+                    state.pickUpGold();
+                }
                 System.out.println();
             }
         }
